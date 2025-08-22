@@ -27,17 +27,94 @@
         .app-bar {
             background: #2e7d32;
             padding: 12px 20px;
-            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
             position: sticky;
             top: 0;
             z-index: 100;
         }
 
+        .app-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .app-logo {
+            height: 40px;
+            width: auto;
+        }
+
         .app-bar h1 {
             font-size: 1.6rem;
             color: white;
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .mobile-nav {
+            display: none;
+            flex-direction: column;
+            background: #2e7d32;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            z-index: 99;
+            padding: 10px 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .mobile-nav.open {
+            display: flex;
+        }
+
+        .mobile-nav-btn {
+            padding: 12px 0;
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .mobile-nav-btn:last-child {
+            border-bottom: none;
         }
 
         /* Main Content */
@@ -214,6 +291,16 @@
             background: #f57c00;
             transform: translateY(-2px);
         }
+
+        #share {
+            background: #6a5acd;
+        }
+        
+        #share:hover {
+            background: #5a4dbd;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(106, 90, 205, 0.3);
+        }
         
         #zoom-level {
             margin-top: 10px;
@@ -316,11 +403,79 @@
             background-color: #25d366;
             color: white;
         }
+
+        /* Share Modal */
+        .share-options {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .share-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            transition: transform 0.3s ease;
+        }
+
+        .share-btn:hover {
+            transform: translateY(-5px);
+        }
+
+        .share-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+            font-size: 20px;
+            color: white;
+        }
+
+        .fb-share {
+            background: #3b5998;
+        }
+
+        .whatsapp-share {
+            background: #25D366;
+        }
+
+        .twitter-share {
+            background: #1DA1F2;
+        }
+
+        .telegram-share {
+            background: #0088cc;
+        }
         
         /* Responsive adjustments */
-        @media (max-width: 600px) {
+        @media (max-width: 900px) {
+            .nav-buttons {
+                display: none;
+            }
+            
+            .mobile-menu-btn {
+                display: block;
+            }
+            
             .app-bar h1 {
                 font-size: 1.4rem;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .app-bar h1 {
+                font-size: 1.2rem;
+            }
+            
+            .app-logo {
+                height: 30px;
             }
             
             .control-btn {
@@ -342,13 +497,55 @@
             #crop-image-container {
                 height: 250px;
             }
+
+            .share-options {
+                flex-wrap: wrap;
+            }
         }
     </style>
 </head>
 <body>
     <!-- App Bar -->
     <div class="app-bar">
-        <h1>Beautiful Dinajpur Frames</h1>
+        <div class="app-bar-left">
+            <img src="/dinlogo.png" alt="Logo" class="app-logo">
+            <h1>Beautiful Dinajpur Frames</h1>
+        </div>
+        
+        <div class="nav-buttons">
+            <button class="nav-btn" onclick="window.location.href='/'">
+                <i class="fas fa-home"></i> Home
+            </button>
+            <button class="nav-btn" onclick="window.open('https://www.facebook.com/BeautifulDinajpur', '_blank')">
+                <i class="fab fa-facebook"></i> Fb Page
+            </button>
+            <button class="nav-btn" onclick="window.open('https://www.facebook.com/groups/beautifuldinajpur', '_blank')">
+                <i class="fab fa-facebook"></i> Fb Group
+            </button>
+            <button class="nav-btn" onclick="window.open('https://www.youtube.com/@beautifulDinajpur', '_blank')">
+                <i class="fab fa-youtube"></i> Youtube
+            </button>
+        </div>
+        
+        <button class="mobile-menu-btn" id="mobile-menu-toggle">
+            <i class="fas fa-bars"></i>
+        </button>
+    </div>
+
+    <!-- Mobile Navigation -->
+    <div class="mobile-nav" id="mobile-nav">
+        <a href="/" class="mobile-nav-btn">
+            <i class="fas fa-home"></i> Home
+        </a>
+        <a href="https://www.facebook.com/BeautifulDinajpur" target="_blank" class="mobile-nav-btn">
+            <i class="fab fa-facebook"></i> Facebook Page
+        </a>
+        <a href="https://www.facebook.com/groups/beautifuldinajpur" target="_blank" class="mobile-nav-btn">
+            <i class="fab fa-facebook"></i> Facebook Group
+        </a>
+        <a href="https://www.youtube.com/@beautifulDinajpur" target="_blank" class="mobile-nav-btn">
+            <i class="fab fa-youtube"></i> YouTube Channel
+        </a>
     </div>
     
     <!-- Main Content -->
@@ -386,8 +583,6 @@
              <div class="frame-option" data-frame="/8.png">
                 <img src="/8.png" alt="Frame 7">
             </div>
-            
-             
         </div>
         
         <!-- Controls -->
@@ -411,6 +606,10 @@
             
             <button id="download" class="control-btn" title="Download">
                 <i class="fas fa-download"></i>
+            </button>
+
+            <button id="share" class="control-btn" title="Share">
+                <i class="fas fa-share-alt"></i>
             </button>
         </div>
         
@@ -440,6 +639,43 @@
         </div>
     </div>
 
+    <!-- Share Modal -->
+    <div class="modal" id="share-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Share This Page</h2>
+                <button class="close-btn" id="close-share-modal">&times;</button>
+            </div>
+            <p>Share Beautiful Dinajpur Frames with your friends and family!</p>
+            <div class="share-options">
+                <a href="#" class="share-btn" id="fb-share">
+                    <div class="share-icon fb-share">
+                        <i class="fab fa-facebook-f"></i>
+                    </div>
+                    <span>Facebook</span>
+                </a>
+                <a href="#" class="share-btn" id="whatsapp-share">
+                    <div class="share-icon whatsapp-share">
+                        <i class="fab fa-whatsapp"></i>
+                    </div>
+                    <span>WhatsApp</span>
+                </a>
+                <a href="#" class="share-btn" id="twitter-share">
+                    <div class="share-icon twitter-share">
+                        <i class="fab fa-twitter"></i>
+                    </div>
+                    <span>Twitter</span>
+                </a>
+                <a href="#" class="share-btn" id="telegram-share">
+                    <div class="share-icon telegram-share">
+                        <i class="fab fa-telegram"></i>
+                    </div>
+                    <span>Telegram</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <script>
         // Remove any Facebook click ID parameters from URL
@@ -455,6 +691,7 @@
         const downloadButton = document.getElementById('download');
         const moveUpButton = document.getElementById('move-up');
         const moveDownButton = document.getElementById('move-down');
+        const shareButton = document.getElementById('share');
         const frame = document.getElementById('frame');
         const zoomLevel = document.getElementById('zoom-level');
         const frameOptions = document.querySelectorAll('.frame-option');
@@ -463,6 +700,14 @@
         const closeCropModal = document.getElementById('close-crop-modal');
         const cropSkip = document.getElementById('crop-skip');
         const cropConfirm = document.getElementById('crop-confirm');
+        const shareModal = document.getElementById('share-modal');
+        const closeShareModal = document.getElementById('close-share-modal');
+        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+        const mobileNav = document.getElementById('mobile-nav');
+        const fbShare = document.getElementById('fb-share');
+        const whatsappShare = document.getElementById('whatsapp-share');
+        const twitterShare = document.getElementById('twitter-share');
+        const telegramShare = document.getElementById('telegram-share');
 
         let cropper;
         let posX = 0;
@@ -476,6 +721,15 @@
         let initialPx = 0;
         let initialPy = 0;
         let currentImageSrc = '';
+
+        // Set up share URLs
+        const currentUrl = encodeURIComponent(window.location.href);
+        const shareText = encodeURIComponent("Check out Beautiful Dinajpur Frames - create amazing photos with beautiful frames from Dinajpur!");
+        
+        fbShare.href = `https://www.facebook.com/sharer/sharer.php?u=${currentUrl}`;
+        whatsappShare.href = `https://wa.me/?text=${shareText}%20${currentUrl}`;
+        twitterShare.href = `https://twitter.com/intent/tweet?text=${shareText}&url=${currentUrl}`;
+        telegramShare.href = `https://t.me/share/url?url=${currentUrl}&text=${shareText}`;
 
         function updateTransform() {
             userPhoto.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
@@ -520,6 +774,21 @@
         moveDownButton.addEventListener('click', () => {
             posY -= 10;
             updateTransform();
+        });
+
+        // Share button
+        shareButton.addEventListener('click', () => {
+            shareModal.style.display = 'flex';
+        });
+
+        // Mobile menu toggle
+        mobileMenuToggle.addEventListener('click', () => {
+            mobileNav.classList.toggle('open');
+        });
+
+        // Close share modal
+        closeShareModal.addEventListener('click', () => {
+            shareModal.style.display = 'none';
         });
 
         upload.addEventListener('change', (e) => {
@@ -636,6 +905,11 @@
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
+
+                    // Show share modal after download
+                    setTimeout(() => {
+                        shareModal.style.display = 'flex';
+                    }, 1000);
                 };
                 
                 frameImg.onerror = () => {
@@ -646,6 +920,11 @@
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
+
+                    // Show share modal after download
+                    setTimeout(() => {
+                        shareModal.style.display = 'flex';
+                    }, 1000);
                 };
             };
             
@@ -742,6 +1021,19 @@
         photoWrapper.addEventListener('touchend', () => {
             isDragging = false;
             isPinching = false;
+        });
+
+        // Close modals when clicking outside
+        window.addEventListener('click', (e) => {
+            if (e.target === cropModal) {
+                cropModal.style.display = 'none';
+                if (cropper) {
+                    cropper.destroy();
+                }
+            }
+            if (e.target === shareModal) {
+                shareModal.style.display = 'none';
+            }
         });
     </script>
 </body>
