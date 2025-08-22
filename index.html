@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Beautiful Dinajpur Frames</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+            touch-action: none;
+        }
+        
+        /* App Bar */
+        .app-bar {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 15px 20px;
+            text-align: center;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .app-bar h1 {
+            font-size: 1.8rem;
+            color: #2575fc;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            width: 100%;
+        }
+        
+        #container {
+            position: relative;
+            width: 80vmin;
+            height: 80vmin;
+            max-width: 400px;
+            max-height: 400px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            background: white;
+        }
+        
+        #photo-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            border-radius: 10px;
+        }
+        
+        #user-photo {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: 0 0;
+            touch-action: none;
+            user-select: none;
+        }
+        
+        #frame {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            border-radius: 10px;
+        }
+        
+        /* Frame Selection */
+        .frame-selection {
+            display: flex;
+            overflow-x: auto;
+            gap: 15px;
+            padding: 15px 10px;
+            margin: 15px 0;
+            width: 90%;
+            max-width: 500px;
+            scrollbar-width: thin;
+            scrollbar-color: #2575fc #f0f0f0;
+        }
+        
+        .frame-selection::-webkit-scrollbar {
+            height: 8px;
+        }
+        
+        .frame-selection::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border-radius: 10px;
+        }
+        
+        .frame-selection::-webkit-scrollbar-thumb {
+            background: #2575fc;
+            border-radius: 10px;
+        }
+        
+        .frame-option {
+            flex: 0 0 auto;
+            width: 80px;
+            height: 80px;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .frame-option:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .frame-option.active {
+            border-color: #2575fc;
+            transform: scale(1.05);
+        }
+        
+        .frame-option img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        /* Controls */
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin: 15px 0;
+            width: 100%;
+            max-width: 500px;
+        }
+        
+        #upload {
+            display: none;
+        }
+        
+        .upload-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: #2575fc;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(37, 117, 252, 0.3);
+        }
+        
+        .upload-btn:hover {
+            background: #1c64e0;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(37, 117, 252, 0.4);
+        }
+        
+        button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        #reset {
+            background: #ff3366;
+            color: white;
+        }
+        
+        #reset:hover {
+            background: #e62e5c;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(255, 51, 102, 0.3);
+        }
+        
+        #download {
+            background: #25d366;
+            color: white;
+        }
+        
+        #download:hover {
+            background: #20bd5c;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(37, 211, 102, 0.3);
+        }
+        
+        #zoom-level {
+            margin-top: 10px;
+            font-size: 16px;
+            color: white;
+            text-align: center;
+            font-weight: 500;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Footer */
+        .footer {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 15px 20px;
+            text-align: center;
+            margin-top: auto;
+            box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .footer p {
+            font-size: 14px;
+            color: #2575fc;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .app-bar h1 {
+                font-size: 1.5rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            button, .upload-btn {
+                width: 100%;
+                max-width: 250px;
+            }
+            
+            .frame-option {
+                width: 70px;
+                height: 70px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- App Bar -->
+    <div class="app-bar">
+        <h1>Beautiful Dinajpur Frames</h1>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <div id="container">
+            <div id="photo-wrapper">
+                <img id="user-photo" src="" alt="Your Photo">
+            </div>
+            <img id="frame" src="https://via.placeholder.com/400x400/2575fc/ffffff?text=Frame+1" alt="Frame">
+        </div>
+        
+        <!-- Frame Selection -->
+        <div class="frame-selection">
+            <div class="frame-option active" data-frame="https://via.placeholder.com/400x400/2575fc/ffffff?text=Frame+1">
+                <img src="https://via.placeholder.com/100/2575fc/ffffff?text=1" alt="Frame 1">
+            </div>
+            <div class="frame-option" data-frame="https://via.placeholder.com/400x400/ff3366/ffffff?text=Frame+2">
+                <img src="https://via.placeholder.com/100/ff3366/ffffff?text=2" alt="Frame 2">
+            </div>
+            <div class="frame-option" data-frame="https://via.placeholder.com/400x400/25d366/ffffff?text=Frame+3">
+                <img src="https://via.placeholder.com/100/25d366/ffffff?text=3" alt="Frame 3">
+            </div>
+            <div class="frame-option" data-frame="https://via.placeholder.com/400x400/ffbd00/ffffff?text=Frame+4">
+                <img src="https://via.placeholder.com/100/ffbd00/ffffff?text=4" alt="Frame 4">
+            </div>
+            <div class="frame-option" data-frame="https://via.placeholder.com/400x400/8e44ad/ffffff?text=Frame+5">
+                <img src="https://via.placeholder.com/100/8e44ad/ffffff?text=5" alt="Frame 5">
+            </div>
+        </div>
+        
+        <!-- Controls -->
+        <div class="controls">
+            <label for="upload" class="upload-btn">
+                <i class="fas fa-upload"></i> Upload Photo
+            </label>
+            <input type="file" id="upload" accept="image/*">
+            
+            <button id="reset">
+                <i class="fas fa-redo"></i> Reset
+            </button>
+            
+            <button id="download">
+                <i class="fas fa-download"></i> Download
+            </button>
+        </div>
+        
+        <div id="zoom-level">Zoom: 100%</div>
+    </div>
+    
+    <!-- Footer -->
+    <div class="footer">
+        <p>&copy; 2025 Beautiful Dinajpur Frames. All rights reserved.</p>
+    </div>
+
+    <script>
+        const upload = document.getElementById('upload');
+        const userPhoto = document.getElementById('user-photo');
+        const photoWrapper = document.getElementById('photo-wrapper');
+        const resetButton = document.getElementById('reset');
+        const downloadButton = document.getElementById('download');
+        const frame = document.getElementById('frame');
+        const zoomLevel = document.getElementById('zoom-level');
+        const frameOptions = document.querySelectorAll('.frame-option');
+
+        let posX = 0;
+        let posY = 0;
+        let scale = 1;
+        let isDragging = false;
+        let isPinching = false;
+        let startX, startY;
+        let initialDistance = 0;
+        let initialScale = 1;
+        let initialPx = 0;
+        let initialPy = 0;
+
+        function updateTransform() {
+            userPhoto.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
+            zoomLevel.textContent = `Zoom: ${Math.round(scale * 100)}%`;
+        }
+
+        function resetPhoto() {
+            if (!userPhoto.src) return;
+            
+            const wrapperWidth = photoWrapper.clientWidth;
+            const wrapperHeight = photoWrapper.clientHeight;
+            const imgWidth = userPhoto.naturalWidth;
+            const imgHeight = userPhoto.naturalHeight;
+
+            scale = Math.max(wrapperWidth / imgWidth, wrapperHeight / imgHeight);
+            posX = (wrapperWidth - imgWidth * scale) / 2;
+            posY = (wrapperHeight - imgHeight * scale) / 2;
+            updateTransform();
+        }
+
+        // Frame selection
+        frameOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                // Remove active class from all options
+                frameOptions.forEach(opt => opt.classList.remove('active'));
+                
+                // Add active class to clicked option
+                option.classList.add('active');
+                
+                // Change frame
+                frame.src = option.getAttribute('data-frame');
+            });
+        });
+
+        upload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    userPhoto.src = ev.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        userPhoto.addEventListener('load', resetPhoto);
+
+        resetButton.addEventListener('click', resetPhoto);
+
+        downloadButton.addEventListener('click', () => {
+            if (!userPhoto.src) {
+                alert('Please upload a photo first!');
+                return;
+            }
+            
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const size = 800; // Higher resolution for download
+            canvas.width = size;
+            canvas.height = size;
+
+            // Draw the user photo first
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.src = userPhoto.src;
+            img.onload = () => {
+                // Draw the photo without clipping for rectangular frame
+                const wrapperWidth = photoWrapper.clientWidth;
+                const scaleFactor = size / wrapperWidth;
+                const scaledWidth = img.width * scale * scaleFactor;
+                const scaledHeight = img.height * scale * scaleFactor;
+                const offsetX = posX * scaleFactor;
+                const offsetY = posY * scaleFactor;
+                
+                // Draw the photo
+                ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+
+                // Draw the frame on top
+                const frameImg = new Image();
+                frameImg.crossOrigin = 'anonymous';
+                frameImg.src = frame.src;
+                frameImg.onload = () => {
+                    ctx.drawImage(frameImg, 0, 0, size, size);
+                    
+                    // Create download link
+                    const link = document.createElement('a');
+                    link.download = 'beautiful-dinajpur-frame.png';
+                    link.href = canvas.toDataURL('image/png', 1.0); // High quality
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                };
+                
+                frameImg.onerror = () => {
+                    // If frame fails to load, just download the photo
+                    const link = document.createElement('a');
+                    link.download = 'beautiful-dinajpur-frame.png';
+                    link.href = canvas.toDataURL('image/png', 1.0);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                };
+            };
+            
+            img.onerror = () => {
+                alert('Error loading the image. Please try again.');
+            };
+        });
+
+        // Mouse events
+        photoWrapper.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                posX += dx;
+                posY += dy;
+                updateTransform();
+                startX = e.clientX;
+                startY = e.clientY;
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        photoWrapper.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const wrapperRect = photoWrapper.getBoundingClientRect();
+            const mouseX = e.clientX - wrapperRect.left;
+            const mouseY = e.clientY - wrapperRect.top;
+            const delta = e.deltaY < 0 ? 0.1 : -0.1;
+            const oldScale = scale;
+            scale = Math.max(0.1, Math.min(3, scale * (1 + delta))); // Min scale 0.1
+            const px = (mouseX - posX) / oldScale;
+            const py = (mouseY - posY) / oldScale;
+            posX = mouseX - px * scale;
+            posY = mouseY - py * scale;
+            updateTransform();
+        });
+
+        // Touch events
+        photoWrapper.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (e.touches.length === 1) {
+                isDragging = true;
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+            } else if (e.touches.length === 2) {
+                isPinching = true;
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                initialDistance = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
+                initialScale = scale;
+                const wrapperRect = photoWrapper.getBoundingClientRect();
+                const midX = (touch1.clientX + touch2.clientX) / 2 - wrapperRect.left;
+                const midY = (touch1.clientY + touch2.clientY) / 2 - wrapperRect.top;
+                initialPx = (midX - posX) / scale;
+                initialPy = (midY - posY) / scale;
+            }
+        });
+
+        photoWrapper.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (e.touches.length === 1 && isDragging) {
+                const dx = e.touches[0].clientX - startX;
+                const dy = e.touches[0].clientY - startY;
+                posX += dx;
+                posY += dy;
+                updateTransform();
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+            } else if (e.touches.length === 2 && isPinching) {
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                const currentDistance = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
+                const oldScale = scale;
+                scale = Math.max(0.1, Math.min(3, initialScale * (currentDistance / initialDistance))); // Min scale 0.1
+                const wrapperRect = photoWrapper.getBoundingClientRect();
+                const midX = (touch1.clientX + touch2.clientX) / 2 - wrapperRect.left;
+                const midY = (touch1.clientY + touch2.clientY) / 2 - wrapperRect.top;
+                posX = midX - initialPx * scale;
+                posY = midY - initialPy * scale;
+                updateTransform();
+            }
+        });
+
+        photoWrapper.addEventListener('touchend', () => {
+            isDragging = false;
+            isPinching = false;
+        });
+    </script>
+</body>
+</html>
