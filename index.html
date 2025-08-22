@@ -16,30 +16,30 @@
             display: flex;
             flex-direction: column;
             min-height: 100vh;
-            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             color: #333;
             touch-action: none;
         }
         
         /* App Bar */
-        .app-bar {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-            padding: 15px 20px;
-            text-align: center;
-            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        
-        .app-bar h1 {
-            font-size: 1.8rem;
-            color: #2575fc;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
-        }
-        
+      .app-bar {
+    background: green; /* সবুজ ব্যাকগ্রাউন্ড */
+    backdrop-filter: blur(10px);
+    padding: 15px 20px;
+    text-align: center;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.app-bar h1 {
+    font-size: 1.8rem;
+    color: white; /* সাদা টেক্সট */
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+}
+
         /* Main Content */
         .main-content {
             flex: 1;
@@ -281,25 +281,25 @@
             <div id="photo-wrapper">
                 <img id="user-photo" src="" alt="Your Photo">
             </div>
-            <img id="frame" src="https://via.placeholder.com/400x400/2575fc/ffffff?text=Frame+1" alt="Frame">
+            <img id="frame" src="/1.png" alt="Frame">
         </div>
         
         <!-- Frame Selection -->
         <div class="frame-selection">
-            <div class="frame-option active" data-frame="https://via.placeholder.com/400x400/2575fc/ffffff?text=Frame+1">
-                <img src="https://via.placeholder.com/100/2575fc/ffffff?text=1" alt="Frame 1">
+            <div class="frame-option active" data-frame="/1.png">
+                <img src="/1.png" alt="Frame 1">
             </div>
-            <div class="frame-option" data-frame="https://via.placeholder.com/400x400/ff3366/ffffff?text=Frame+2">
-                <img src="https://via.placeholder.com/100/ff3366/ffffff?text=2" alt="Frame 2">
+            <div class="frame-option" data-frame="/2.png">
+                <img src="/2.png" alt="Frame 2">
             </div>
-            <div class="frame-option" data-frame="https://via.placeholder.com/400x400/25d366/ffffff?text=Frame+3">
-                <img src="https://via.placeholder.com/100/25d366/ffffff?text=3" alt="Frame 3">
+            <div class="frame-option" data-frame="/3.png">
+                <img src="/3.png" alt="Frame 3">
             </div>
-            <div class="frame-option" data-frame="https://via.placeholder.com/400x400/ffbd00/ffffff?text=Frame+4">
-                <img src="https://via.placeholder.com/100/ffbd00/ffffff?text=4" alt="Frame 4">
+            <div class="frame-option" data-frame="/4.png">
+                <img src="/4.png" alt="Frame 4">
             </div>
-            <div class="frame-option" data-frame="https://via.placeholder.com/400x400/8e44ad/ffffff?text=Frame+5">
-                <img src="https://via.placeholder.com/100/8e44ad/ffffff?text=5" alt="Frame 5">
+            <div class="frame-option" data-frame="/5.png">
+                <img src="/5.png" alt="Frame 5">
             </div>
         </div>
         
