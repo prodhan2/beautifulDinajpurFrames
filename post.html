@@ -423,13 +423,13 @@
 <body>
     <div class="container">
         <header>
-            <h1><i class="fas fa-water"></i> Advanced Watermark App</h1>
+            <h1><i class="fas fa-water"></i> BeautifulDinajpur Watermark App</h1>
             <p class="subtitle">Drag to move, resize, and adjust transparency of your watermark in real-time</p>
         </header>
         
         <div class="app-container">
             <div class="upload-section">
-                <img src="https://i.postimg.cc/JzhK4jsT/dinlogo.png" alt="Watermark Logo" class="logo-preview">
+                <img src="/dinlogo.png" alt="Watermark Logo" class="logo-preview">
                 <p>Select images to add customizable watermark</p>
                 <label for="file-input" class="upload-btn">
                     <i class="fas fa-images"></i> Choose Images
@@ -467,7 +467,7 @@
                     <img id="preview-image" src="data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22800%22%20height%3D%22400%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20800%20400%22%20preserveAspectRatio%3D%22none%22%3E%3Cdefs%3E%3Cstyle%20type%3D%22text%2Fcss%22%3E%23holder_15e6debceeb%20text%20%7B%20fill%3A%23AAAAAA%3Bfont-weight%3Abold%3Bfont-family%3AArial%2C%20Helvetica%2C%20Open%20Sans%2C%20sans-serif%2C%20monospace%3Bfont-size%3A40pt%20%7D%20%3C%2Fstyle%3E%3C%2Fdefs%3E%3Cg%20id%3D%22holder_15e6debceeb%22%3E%3Crect%20width%3D%22800%22%20height%3D%22400%22%20fill%3D%22%23F5F5F5%22%3E%3C%2Frect%3E%3Cg%3E%3Ctext%20x%3D%22285%22%20y%3D%22218%22%3ESelect an Image%3C%2Ftext%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E" alt="Preview">
                     <div class="watermark-overlay" id="watermark-overlay" style="left: 50%; top: 50%; transform: translate(-50%, -50%); width: 30%;">
                         <div class="drag-handle"><i class="fas fa-arrows-alt"></i></div>
-                        <img src="https://i.postimg.cc/JzhK4jsT/dinlogo.png" alt="Watermark">
+                        <img src="/dinlogo.png" alt="Watermark">
                         <div class="resize-handle" id="resize-handle"></div>
                     </div>
                     <div class="zoom-info" id="zoom-info">100%</div>
@@ -558,7 +558,7 @@
             // Watermark image
             const watermarkImg = new Image();
             watermarkImg.crossOrigin = "Anonymous";
-            watermarkImg.src = 'https://i.postimg.cc/JzhK4jsT/dinlogo.png';
+            watermarkImg.src = '/dinlogo.png';
             
             // Initialize slider values
             sizeValue.textContent = `${sizeSlider.value}%`;

@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Draggable Separator & Logo with Zoomable Image</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f5f5f5;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .poster {
+    width: 400px;
+    border: 5px solid green;
+    margin: auto;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    position: relative;
+  }
+
+  .image-container {
+    width: 100%;
+    height: 250px;
+    overflow: hidden;
+    position: relative;
+    cursor: grab;
+  }
+  
+  .poster img.uploaded {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transform-origin: center center;
+    transition: transform 0.1s ease;
+  }
+
+  .draggable-group {
+    position: absolute;
+    top: 260px; /* শুরুতে image এর নিচে */
+    left: 0;
+    width: 100%;
+    cursor: grab;
+    z-index: 10;
+  }
+
+  .separator {
+    position: relative;
+    height: 60px;
+    margin: 0;
+  }
+
+  .separator::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: green;
+    transform: translateY(-50%);
+  }
+
+  .logo-circle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 3px solid green;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo-circle img {
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .headline {
+    font-size: 22px;
+    font-weight: bold;
+    color: red;
+    margin: 10px;
+    line-height: 1.4;
+    word-wrap: break-word;
+    position: relative;
+    top: 0;
+  }
+
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    padding: 10px;
+    color: #333;
+  }
+
+  .controls {
+    margin-bottom: 20px;
+  }
+
+  input {
+    margin: 5px;
+    padding: 8px;
+    width: 250px;
+  }
+  
+  .zoom-controls {
+    margin-top: 10px;
+  }
+  
+  .zoom-controls button {
+    padding: 5px 10px;
+    margin: 0 5px;
+    cursor: pointer;
+  }
+  
+  /* Cropping Modal Styles */
+  .crop-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 100;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .crop-container {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 80%;
+    max-height: 80%;
+    overflow: auto;
+  }
+  
+  .crop-area {
+    position: relative;
+    max-width: 100%;
+    max-height: 400px;
+    overflow: hidden;
+    margin-bottom: 15px;
+  }
+  
+  #cropImage {
+    max-width: 100%;
+    display: block;
+  }
+  
+  .crop-box {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 200px;
+    height: 200px;
+    border: 2px dashed #fff;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+    cursor: move;
+  }
+  
+  .crop-handle {
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    background: #fff;
+    border: 1px solid #000;
+  }
+  
+  .handle-nw { top: -8px; left: -8px; cursor: nw-resize; }
+  .handle-ne { top: -8px; right: -8px; cursor: ne-resize; }
+  .handle-sw { bottom: -8px; left: -8px; cursor: sw-resize; }
+  .handle-se { bottom: -8px; right: -8px; cursor: se-resize; }
+  
+  .crop-controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+  }
+  
+  .crop-controls button {
+    padding: 8px 15px;
+    cursor: pointer;
+    background: green;
+    color: white;
+    border: none;
+    border-radius: 4px;
+  }
+  
+  .crop-controls button.cancel {
+    background: #ccc;
+    color: #333;
+  }
+</style>
+</head>
+<body>
+<h2>News Poster Live Preview (Draggable Separator + Logo + Zoomable Image)</h2>
+
+<div class="controls">
+  <input type="file" id="imageInput"><br>
+  <input type="text" id="headlineInput" placeholder="Enter Headline"><br>
+  <input type="text" id="creditInput" placeholder="Enter Credits"><br>
+  <div class="zoom-controls">
+    <button id="zoomIn">Zoom In</button>
+    <button id="zoomOut">Zoom Out</button>
+    <button id="resetImage">Reset Image</button>
+    <button id="cropImageBtn">Crop Image</button>
+  </div>
+</div>
+
+<div class="poster" id="poster">
+  <!-- Uploaded Image Container -->
+  <div class="image-container" id="imageContainer">
+    <img id="uploadedImage" class="uploaded" src="https://via.placeholder.com/400x250" alt="Uploaded Image">
+  </div>
+
+  <!-- Draggable Separator + Logo -->
+  <div class="draggable-group" id="draggableGroup">
+    <div class="separator">
+      <div class="logo-circle">
+        <img src="https://i.postimg.cc/8cqjpFbR/dinlogo-copy.png" alt="Logo">
+      </div>
+    </div>
+  </div>
+
+  <!-- Headline BELOW separator -->
+  <div class="headline" id="headline">Your Headline Here</div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div id="date">Date: </div>
+    <div id="credit">Credits: Your Name</div>
+  </div>
+</div>
+
+<!-- Cropping Modal -->
+<div class="crop-modal" id="cropModal">
+  <div class="crop-container">
+    <h3>Crop Image</h3>
+    <div class="crop-area" id="cropArea">
+      <img id="cropImage" src="" alt="Image to crop">
+      <div class="crop-box" id="cropBox">
+        <div class="crop-handle handle-nw"></div>
+        <div class="crop-handle handle-ne"></div>
+        <div class="crop-handle handle-sw"></div>
+        <div class="crop-handle handle-se"></div>
+      </div>
+    </div>
+    <div class="crop-controls">
+      <button id="applyCrop">Apply Crop</button>
+      <button id="cancelCrop" class="cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Auto date
+  const today = new Date();
+  const formattedDate = today.toLocaleDateString();
+  document.getElementById("date").textContent = "Date: " + formattedDate;
+
+  // Image upload
+  document.getElementById("imageInput").addEventListener("change", function(event) {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById("uploadedImage").src = e.target.result;
+        // Reset image position and scale after upload
+        resetImagePosition();
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  // Headline live update
+  document.getElementById("headlineInput").addEventListener("input", function() {
+    document.getElementById("headline").textContent = this.value;
+  });
+
+  // Credit live update
+  document.getElementById("creditInput").addEventListener("input", function() {
+    document.getElementById("credit").textContent = "Credits: " + this.value;
+  });
+
+  // Draggable functionality for separator
+  const draggable = document.getElementById('draggableGroup');
+  let offsetY = 0;
+  let isDraggingSeparator = false;
+
+  draggable.addEventListener('mousedown', function(e) {
+    isDraggingSeparator = true;
+    offsetY = e.clientY - draggable.getBoundingClientRect().top;
+    draggable.style.cursor = 'grabbing';
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (isDraggingSeparator) {
+      const posterTop = document.getElementById('poster').getBoundingClientRect().top;
+      let newTop = e.clientY - posterTop - offsetY;
+      if(newTop < 0) newTop = 0;
+      if(newTop > 250) newTop = 250; // restrict within poster
+      draggable.style.top = newTop + 'px';
+    }
+  });
+
+  document.addEventListener('mouseup', function() {
+    isDraggingSeparator = false;
+    draggable.style.cursor = 'grab';
+  });
+
+  // Image zoom and pan functionality
+  const imageContainer = document.getElementById('imageContainer');
+  const uploadedImage = document.getElementById('uploadedImage');
+  let scale = 1;
+  let posX = 0;
+  let posY = 0;
+  let isDraggingImage = false;
+  let startX, startY, initialPosX, initialPosY;
+
+  // Mouse events for image panning
+  imageContainer.addEventListener('mousedown', function(e) {
+    if (scale <= 1) return; // Only allow dragging when zoomed in
+    
+    isDraggingImage = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    initialPosX = posX;
+    initialPosY = posY;
+    imageContainer.style.cursor = 'grabbing';
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (!isDraggingImage) return;
+    
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    
+    // Calculate new position with boundaries
+    const maxX = (scale - 1) * uploadedImage.width / 2;
+    const maxY = (scale - 1) * uploadedImage.height / 2;
+    
+    posX = Math.min(Math.max(initialPosX + dx, -maxX), maxX);
+    posY = Math.min(Math.max(initialPosY + dy, -maxY), maxY);
+    
+    updateImageTransform();
+  });
+
+  document.addEventListener('mouseup', function() {
+    isDraggingImage = false;
+    imageContainer.style.cursor = scale > 1 ? 'grab' : 'default';
+  });
+
+  // Wheel event for zooming
+  imageContainer.addEventListener('wheel', function(e) {
+    e.preventDefault();
+    
+    const rect = imageContainer.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    
+    const zoomIntensity = 0.1;
+    const wheel = e.deltaY < 0 ? 1 : -1;
+    const zoom = Math.exp(wheel * zoomIntensity);
+    
+    // Calculate new scale with limits
+    const newScale = Math.min(Math.max(scale * zoom, 1), 5);
+    
+    if (newScale === scale) return;
+    
+    // Calculate mouse position relative to image
+    const imageX = (mouseX - rect.width / 2 - posX) / scale;
+    const imageY = (mouseY - rect.height / 2 - posY) / scale;
+    
+    scale = newScale;
+    
+    // Adjust position to zoom toward mouse
+    posX = -(imageX * scale - mouseX + rect.width / 2);
+    posY = -(imageY * scale - mouseY + rect.height / 2);
+    
+    // Apply boundaries
+    const maxX = Math.max(0, (scale - 1) * uploadedImage.width / 2);
+    const maxY = Math.max(0, (scale - 1) * uploadedImage.height / 2);
+    
+    posX = Math.min(Math.max(posX, -maxX), maxX);
+    posY = Math.min(Math.max(posY, -maxY), maxY);
+    
+    updateImageTransform();
+    imageContainer.style.cursor = scale > 1 ? 'grab' : 'default';
+  });
+
+  // Button controls
+  document.getElementById('zoomIn').addEventListener('click', function() {
+    scale = Math.min(scale + 0.2, 5);
+    updateImageTransform();
+    imageContainer.style.cursor = scale > 1 ? 'grab' : 'default';
+  });
+
+  document.getElementById('zoomOut').addEventListener('click', function() {
+    scale = Math.max(scale - 0.2, 0.1); // allow zoom smaller than 1, set minimum 0.1
+    
+    // Reset position if back to default scale (optional)
+    if (scale === 1) {
+      posX = 0;
+      posY = 0;
+    }
+    
+    updateImageTransform();
+    imageContainer.style.cursor = scale !== 1 ? 'grab' : 'default';
+});
+
+
+  document.getElementById('resetImage').addEventListener('click', resetImagePosition);
+
+  function updateImageTransform() {
+    uploadedImage.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
+  }
+
+  function resetImagePosition() {
+    scale = 1;
+    posX = 0;
+    posY = 0;
+    updateImageTransform();
+    imageContainer.style.cursor = 'default';
+  }
+
+  // Image Cropping Functionality
+  const cropModal = document.getElementById('cropModal');
+  const cropImageBtn = document.getElementById('cropImageBtn');
+  const cropImage = document.getElementById('cropImage');
+  const cropBox = document.getElementById('cropBox');
+  const applyCrop = document.getElementById('applyCrop');
+  const cancelCrop = document.getElementById('cancelCrop');
+  
+  let isCropping = false;
+  let cropData = {
+    x: 0,
+    y: 0,
+    width: 200,
+    height: 200
+  };
+  
+  // Open crop modal
+  cropImageBtn.addEventListener('click', function() {
+    if (!uploadedImage.src || uploadedImage.src.includes('via.placeholder.com')) {
+      alert('Please upload an image first');
+      return;
+    }
+    
+    cropImage.src = uploadedImage.src;
+    cropModal.style.display = 'flex';
+    
+    // Initialize crop box position
+    const cropArea = document.getElementById('cropArea');
+    const areaRect = cropArea.getBoundingClientRect();
+    
+    cropData = {
+      x: (areaRect.width - 200) / 2,
+      y: (areaRect.height - 200) / 2,
+      width: 200,
+      height: 200
+    };
+    
+    updateCropBox();
+  });
+  
+  // Close crop modal
+  cancelCrop.addEventListener('click', function() {
+    cropModal.style.display = 'none';
+  });
+  
+  // Apply crop
+  applyCrop.addEventListener('click', function() {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas dimensions to match crop box
+    canvas.width = cropData.width;
+    canvas.height = cropData.height;
+    
+    // Calculate scaling factor (original image vs displayed image)
+    const img = new Image();
+    img.onload = function() {
+      const scaleX = img.width / cropImage.width;
+      const scaleY = img.height / cropImage.height;
+      
+      // Draw cropped portion on canvas
+      ctx.drawImage(
+        img,
+        cropData.x * scaleX,
+        cropData.y * scaleY,
+        cropData.width * scaleX,
+        cropData.height * scaleY,
+        0, 0, cropData.width, cropData.height
+      );
+      
+      // Update the image in the poster
+      uploadedImage.src = canvas.toDataURL('image/jpeg');
+      
+      // Reset image position and scale
+      resetImagePosition();
+      
+      // Close modal
+      cropModal.style.display = 'none';
+    };
+    img.src = uploadedImage.src;
+  });
+  
+  // Make crop box draggable and resizable
+  let isDraggingCrop = false;
+  let isResizingCrop = false;
+  let resizeDirection = '';
+  let startCropX, startCropY;
+  
+  cropBox.addEventListener('mousedown', function(e) {
+    if (e.target.classList.contains('crop-handle')) {
+      isResizingCrop = true;
+      resizeDirection = e.target.classList[1].split('-')[1];
+    } else {
+      isDraggingCrop = true;
+    }
+    
+    startCropX = e.clientX;
+    startCropY = e.clientY;
+  });
+  
+  document.addEventListener('mousemove', function(e) {
+    if (!isDraggingCrop && !isResizingCrop) return;
+    
+    const dx = e.clientX - startCropX;
+    const dy = e.clientY - startCropY;
+    
+    if (isDraggingCrop) {
+      // Move the crop box
+      cropData.x += dx;
+      cropData.y += dy;
+      
+      // Constrain within image bounds
+      const cropArea = document.getElementById('cropArea');
+      cropData.x = Math.max(0, Math.min(cropData.x, cropArea.offsetWidth - cropData.width));
+      cropData.y = Math.max(0, Math.min(cropData.y, cropArea.offsetHeight - cropData.height));
+    } else if (isResizingCrop) {
+      // Resize the crop box based on direction
+      const minSize = 50;
+      
+      if (resizeDirection.includes('e')) {
+        cropData.width = Math.max(minSize, cropData.width + dx);
+      }
+      if (resizeDirection.includes('w')) {
+        const newWidth = Math.max(minSize, cropData.width - dx);
+        cropData.x += cropData.width - newWidth;
+        cropData.width = newWidth;
+      }
+      if (resizeDirection.includes('s')) {
+        cropData.height = Math.max(minSize, cropData.height + dy);
+      }
+      if (resizeDirection.includes('n')) {
+        const newHeight = Math.max(minSize, cropData.height - dy);
+        cropData.y += cropData.height - newHeight;
+        cropData.height = newHeight;
+      }
+    }
+    
+    updateCropBox();
+    
+    startCropX = e.clientX;
+    startCropY = e.clientY;
+  });
+  
+  document.addEventListener('mouseup', function() {
+    isDraggingCrop = false;
+    isResizingCrop = false;
+  });
+  
+  function updateCropBox() {
+    cropBox.style.left = cropData.x + 'px';
+    cropBox.style.top = cropData.y + 'px';
+    cropBox.style.width = cropData.width + 'px';
+    cropBox.style.height = cropData.height + 'px';
+  }
+</script>
+</body>
+</html>

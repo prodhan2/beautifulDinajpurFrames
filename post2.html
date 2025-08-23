@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Dinajpur Frame – Photo Editor</title>
+
+<!-- Fonts for Bangla -->
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;700&display=swap" rel="stylesheet">
+
+<!-- Fabric.js -->
+<script src="https://cdn.jsdelivr.net/npm/fabric@6.0.2/dist/fabric.min.js"></script>
+
+<style>
+  :root {
+    --brand:#2e9e45;
+  }
+  html,body{
+    margin:0;background:#f4f6f8;color:#0b1220;font-family:"Noto Sans Bengali", system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  }
+  header{
+    position:sticky;top:0;z-index:5;background:#fff8;
+    backdrop-filter: blur(10px);box-shadow:0 6px 20px rgba(0,0,0,.08);
+  }
+  .wrap{max-width:1100px;margin:0 auto;padding:14px 16px;}
+  .toolbar{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;
+  }
+  .card{
+    background:#fff;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.06);
+    padding:12px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  }
+  .card h4{margin:0 8px 0 0;font-size:14px;font-weight:700;color:#334155}
+  .btn{
+    border:1px solid #e5e7eb;border-radius:12px;background:#fff;padding:8px 12px;
+    cursor:pointer;font-weight:600;
+  }
+  .btn:hover{box-shadow:0 6px 14px rgba(0,0,0,.08)}
+  .btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .btn.danger{background:#fff0f0;color:#b91c1c;border-color:#fecaca}
+  input[type="color"], input[type="range"], input[type="date"], input[type="text"]{
+    padding:6px 8px;border:1px solid #e5e7eb;border-radius:10px;background:#fff
+  }
+  #stage{
+    display:flex;justify-content:center;align-items:center;padding:18px;
+  }
+  canvas{background:#fff;border-radius:18px;box-shadow:0 20px 40px rgba(0,0,0,.10)}
+  footer{padding:16px 0 40px;text-align:center;color:#6b7280}
+  .hint{font-size:12px;color:#64748b}
+  .spacer{height:10px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap toolbar">
+
+    <div class="card">
+      <h4>📷 ছবি আপলোড</h4>
+      <input id="uploader" type="file" accept="image/*">
+      <button id="fitArea" class="btn">Fit to area</button>
+      <button id="clearPhoto" class="btn danger">Remove photo</button>
+    </div>
+
+    <div class="card">
+      <h4>📝 ক্যাপশন (ফুটারের উপরে)</h4>
+      <button id="addCaption" class="btn">Add / Select</button>
+      <input id="captionText" type="text" placeholder="এখানে আপনার লেখা লিখুন">
+      <button id="boldToggle" class="btn">Bold</button>
+      <label class="hint">Size</label><input id="fontSize" type="range" min="18" max="80" value="36">
+      <label class="hint">Color</label><input id="fontColor" type="color" value="#ff0000" />
+      <button data-align="left" class="btn align">বামে</button>
+      <button data-align="center" class="btn align">মাঝে</button>
+      <button data-align="right" class="btn align">ডানে</button>
+    </div>
+
+    <div class="card">
+      <h4>📅 তারিখ</h4>
+      <input id="dateInput" type="date">
+      <button id="applyDate" class="btn">Set Date</button>
+      <h4>👤 নাম (ছবি)</h4>
+      <input id="nameInput" type="text" placeholder="আপনার নাম">
+      <button id="applyName" class="btn">Set Name</button>
+    </div>
+
+    <div class="card">
+      <h4>⬇️ ডাউনলোড</h4>
+      <button id="downloadPNG" class="btn primary">Download PNG</button>
+      <span class="hint">Tip: যেকোন অবজেক্ট ড্র্যাগ/রিসাইজ করা যাবে।</span>
+    </div>
+
+  </div>
+</header>
+
+<div id="stage" class="wrap">
+  <!-- 1080x1080 canvas to match frame size -->
+  <canvas id="c" width="1080" height="1080"></canvas>
+</div>
+
+<footer>
+  <div class="wrap hint">
+    Frame: postimg hosted PNG • Objects: drag to move, use corner handles to resize/rotate • Use keyboard Delete to remove selected object.
+  </div>
+</footer>
+
+<script>
+(async function(){
+  // Canvas
+  const canvas = new fabric.Canvas('c', {
+    enableRetinaScaling: true,
+    preserveObjectStacking: true,
+    selection: true
+  });
+
+  // Helpful defaults
+  fabric.Object.prototype.transparentCorners = false;
+  fabric.Object.prototype.cornerStyle = 'circle';
+  fabric.Object.prototype.cornerSize = 12;
+  fabric.Object.prototype.borderColor = '#22c55e';
+  fabric.Object.prototype.cornerColor = '#22c55e';
+  fabric.Object.prototype.padding = 4;
+
+  // ---- CONSTANTS ----
+  const FRAME_URL = "https://i.postimg.cc/137Td9C0/1-copy.png"; // given frame
+  const CANVAS_W = 1080, CANVAS_H = 1080;
+
+  // White background
+  canvas.setBackgroundColor('#ffffff', canvas.renderAll.bind(canvas));
+
+  // Load frame (locked, always on top)
+  let frameImg;
+  function addFrame(){
+    fabric.Image.fromURL(FRAME_URL, img=>{
+      frameImg = img;
+      img.set({
+        left: 0, top: 0, selectable: false, evented: false, hasControls:false,
+        scaleX: CANVAS_W / img.width, scaleY: CANVAS_H / img.height
+      });
+      img.set({hoverCursor:'default'});
+      canvas.add(img);
+      img.moveTo(9999); // top-most
+      canvas.requestRenderAll();
+    }, {crossOrigin: 'anonymous'});
+  }
+  addFrame();
+
+  // A helper rectangle roughly representing the image area (for fit button)
+  // (not added to canvas)
+  const IMAGE_BOUNDS = { x: 40, y: 150, w: 1000, h: 600 };
+
+  // Uploaded photo
+  let userPhoto = null;
+  const uploader = document.getElementById('uploader');
+  uploader.addEventListener('change', e=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const url = URL.createObjectURL(file);
+    fabric.Image.fromURL(url, img=>{
+      if(userPhoto) canvas.remove(userPhoto);
+      userPhoto = img;
+      img.set({ left: CANVAS_W/2, top: 420, originX:'center', originY:'center' });
+      // scale to width ~ IMAGE_BOUNDS.w
+      const scale = Math.min(IMAGE_BOUNDS.w / img.width, IMAGE_BOUNDS.h / img.height);
+      img.scale(scale);
+      canvas.add(img);
+      // ensure frame is on top
+      if(frameImg) frameImg.moveTo(9999);
+      canvas.setActiveObject(img);
+      canvas.requestRenderAll();
+    }, {crossOrigin:'anonymous'});
+  });
+
+  document.getElementById('fitArea').onclick = ()=>{
+    if(!userPhoto) return;
+    const img = userPhoto;
+    const scale = Math.min(IMAGE_BOUNDS.w / img.width, IMAGE_BOUNDS.h / img.height);
+    img.set({ scaleX: scale, scaleY: scale, left: IMAGE_BOUNDS.x + IMAGE_BOUNDS.w/2, top: IMAGE_BOUNDS.y + IMAGE_BOUNDS.h/2, originX:'center', originY:'center' });
+    canvas.requestRenderAll();
+  };
+  document.getElementById('clearPhoto').onclick = ()=>{
+    if(userPhoto) { canvas.remove(userPhoto); userPhoto=null; canvas.requestRenderAll(); }
+  };
+
+  // Caption above footer
+  let caption;
+  const addCaptionBtn = document.getElementById('addCaption');
+  const captionTextInput = document.getElementById('captionText');
+  const fontSizeInput = document.getElementById('fontSize');
+  const fontColorInput = document.getElementById('fontColor');
+  const boldToggle = document.getElementById('boldToggle');
+  const alignButtons = Array.from(document.querySelectorAll('.btn.align'));
+
+  addCaptionBtn.onclick = ()=>{
+    if(!caption){
+      caption = new fabric.Textbox('এখানে আপনার লেখা', {
+        left: CANVAS_W/2, top: 920, originX:'center',
+        width: 950, textAlign: 'center',
+        fontSize: +fontSizeInput.value,
+        fill: fontColorInput.value,
+        fontWeight: '700',
+        fontFamily: '"Noto Sans Bengali", sans-serif',
+        editable: true
+      });
+      canvas.add(caption);
+    }
+    canvas.setActiveObject(caption);
+    canvas.requestRenderAll();
+  };
+
+  captionTextInput.addEventListener('input', ()=>{
+    const obj = canvas.getActiveObject() || caption;
+    if(obj && obj.isType('textbox')){
+      obj.text = captionTextInput.value;
+      canvas.requestRenderAll();
+    }
+  });
+  fontSizeInput.addEventListener('input', ()=>{
+    const obj = canvas.getActiveObject() || caption;
+    if(obj && obj.set){ obj.set('fontSize', +fontSizeInput.value); canvas.requestRenderAll(); }
+  });
+  fontColorInput.addEventListener('input', ()=>{
+    const obj = canvas.getActiveObject() || caption;
+    if(obj && obj.set){ obj.set('fill', fontColorInput.value); canvas.requestRenderAll(); }
+  });
+  boldToggle.onclick = ()=>{
+    const obj = canvas.getActiveObject() || caption;
+    if(obj && obj.set){
+      obj.set('fontWeight', (obj.fontWeight === '700' || obj.fontWeight === 'bold') ? '400' : '700');
+      canvas.requestRenderAll();
+    }
+  };
+  alignButtons.forEach(b=>{
+    b.onclick = ()=>{
+      const obj = canvas.getActiveObject() || caption;
+      if(obj && obj.isType('textbox')){
+        obj.set('textAlign', b.dataset.align);
+        canvas.requestRenderAll();
+      }
+    };
+  });
+
+  // Date & Name fields (editable, placed over green footer)
+  let dateText, nameText;
+
+  function ensureDateObj(){
+    if(!dateText){
+      dateText = new fabric.Textbox('', {
+        left: 180, top: 1010, width: 320,
+        fontSize: 34, fill: '#ffffff', fontWeight: '700',
+        fontFamily: '"Noto Sans Bengali", sans-serif',
+        textAlign: 'left',
+        shadow: 'rgba(0,0,0,0.25) 0px 1px 1px'
+      });
+      canvas.add(dateText);
+    }
+    return dateText;
+  }
+  function ensureNameObj(){
+    if(!nameText){
+      nameText = new fabric.Textbox('', {
+        left: 820, top: 1010, width: 280,
+        fontSize: 34, fill: '#ffffff', fontWeight: '700',
+        fontFamily: '"Noto Sans Bengali", sans-serif',
+        textAlign: 'right',
+        originX: 'center'
+      });
+      canvas.add(nameText);
+    }
+    return nameText;
+  }
+
+  // Defaults
+  const dateInput = document.getElementById('dateInput');
+  const todayISO = new Date().toISOString().slice(0,10);
+  dateInput.value = todayISO;
+
+  document.getElementById('applyDate').onclick = ()=>{
+    const d = new Date(dateInput.value || Date.now());
+    // Format Bangla date like DD-MM-YYYY
+    const dd = String(d.getDate()).padStart(2,'0');
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const yyyy = d.getFullYear();
+    const bnDigits = s => s.replace(/\d/g, m=>"০১২৩৪৫৬৭৮৯"[+m]);
+    const text = ` ${bnDigits(dd)}-${bnDigits(mm)}-${bnDigits(String(yyyy))}`;
+    const t = ensureDateObj();
+    t.text = text;
+    canvas.requestRenderAll();
+    canvas.setActiveObject(t);
+  };
+
+  document.getElementById('applyName').onclick = ()=>{
+    const val = document.getElementById('nameInput').value.trim();
+    const t = ensureNameObj();
+    t.text = (val ? " "+val : "");
+    canvas.requestRenderAll();
+    canvas.setActiveObject(t);
+  };
+
+  // Keep inputs in sync when selecting caption
+  canvas.on('selection:created', syncFromActive);
+  canvas.on('selection:updated', syncFromActive);
+  function syncFromActive(){
+    const obj = canvas.getActiveObject();
+    if(obj && obj.isType('textbox')){
+      captionTextInput.value = obj.text || '';
+      fontSizeInput.value = obj.fontSize || 36;
+      fontColorInput.value = obj.fill || '#ff0000';
+    }
+  }
+
+  // Keep frame on very top always
+  canvas.on('object:added', ()=>{ if(frameImg){ frameImg.moveTo(9999); }});
+  canvas.on('object:modified', ()=>{ if(frameImg){ frameImg.moveTo(9999); }});
+
+  // Download as PNG
+  document.getElementById('downloadPNG').onclick = ()=>{
+    // Temporarily ensure frame truly on top
+    if(frameImg) frameImg.moveTo(9999);
+    canvas.discardActiveObject();
+    canvas.renderAll();
+    const dataURL = canvas.toDataURL({ format: 'png', quality: 1 });
+    const a = document.createElement('a');
+    a.href = dataURL;
+    a.download = 'dinajpur_frame.png';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
+})();
+</script>
+</body>
+</html>
