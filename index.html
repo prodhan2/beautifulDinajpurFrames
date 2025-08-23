@@ -70,6 +70,7 @@
             display: flex;
             align-items: center;
             gap: 5px;
+            text-decoration: none;
         }
 
         .nav-btn:hover {
@@ -90,17 +91,20 @@
             display: none;
             flex-direction: column;
             background: #2e7d32;
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
+            position: fixed;
+            top: 0;
+            left: -250px;
+            width: 250px;
+            height: 100%;
             z-index: 99;
-            padding: 10px 20px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
+            transition: left 0.3s ease;
         }
 
         .mobile-nav.open {
             display: flex;
+            left: 0;
         }
 
         .mobile-nav-btn {
@@ -505,45 +509,48 @@
     </style>
 </head>
 <body>
+    <!-- Facebook SDK -->
+    <div id="fb-root"></div>
+    <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v20.0&appId=YOUR_APP_ID"></script>
+
     <!-- App Bar -->
     <div class="app-bar">
         <div class="app-bar-left">
+            <button class="mobile-menu-btn" id="mobile-menu-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
             <img src="/dinlogo.png" alt="Logo" class="app-logo">
             <h1>Beautiful Dinajpur Frames</h1>
         </div>
         
         <div class="nav-buttons">
-            <button class="nav-btn" onclick="window.location.href='/'">
+            <a href="/" class="nav-btn" target="_blank">
                 <i class="fas fa-home"></i> Home
-            </button>
-            <button class="nav-btn" onclick="window.open('https://www.facebook.com/BeautifulDinajpur', '_blank')">
+            </a>
+            <a href="https://www.facebook.com/BeautifulDinajpur" class="nav-btn" target="_blank">
                 <i class="fab fa-facebook"></i> Fb Page
-            </button>
-            <button class="nav-btn" onclick="window.open('https://www.facebook.com/groups/beautifuldinajpur', '_blank')">
+            </a>
+            <a href="https://www.facebook.com/groups/beautifuldinajpur" class="nav-btn" target="_blank">
                 <i class="fab fa-facebook"></i> Fb Group
-            </button>
-            <button class="nav-btn" onclick="window.open('https://www.youtube.com/@beautifulDinajpur', '_blank')">
+            </a>
+            <a href="https://www.youtube.com/@beautifulDinajpur" class="nav-btn" target="_blank">
                 <i class="fab fa-youtube"></i> Youtube
-            </button>
+            </a>
         </div>
-        
-        <button class="mobile-menu-btn" id="mobile-menu-toggle">
-            <i class="fas fa-bars"></i>
-        </button>
     </div>
 
     <!-- Mobile Navigation -->
     <div class="mobile-nav" id="mobile-nav">
-        <a href="/" class="mobile-nav-btn">
+        <a href="/" class="mobile-nav-btn" target="_blank">
             <i class="fas fa-home"></i> Home
         </a>
-        <a href="https://www.facebook.com/BeautifulDinajpur" target="_blank" class="mobile-nav-btn">
+        <a href="https://www.facebook.com/BeautifulDinajpur" class="mobile-nav-btn" target="_blank">
             <i class="fab fa-facebook"></i> Facebook Page
         </a>
-        <a href="https://www.facebook.com/groups/beautifuldinajpur" target="_blank" class="mobile-nav-btn">
+        <a href="https://www.facebook.com/groups/beautifuldinajpur" class="mobile-nav-btn" target="_blank">
             <i class="fab fa-facebook"></i> Facebook Group
         </a>
-        <a href="https://www.youtube.com/@beautifulDinajpur" target="_blank" class="mobile-nav-btn">
+        <a href="https://www.youtube.com/@beautifulDinajpur" class="mobile-nav-btn" target="_blank">
             <i class="fab fa-youtube"></i> YouTube Channel
         </a>
     </div>
@@ -577,11 +584,14 @@
             <div class="frame-option" data-frame="/6.png">
                 <img src="/6.png" alt="Frame 6">
             </div>
-             <div class="frame-option" data-frame="/7.png">
+            <div class="frame-option" data-frame="/7.png">
                 <img src="/7.png" alt="Frame 7">
             </div>
-             <div class="frame-option" data-frame="/8.png">
-                <img src="/8.png" alt="Frame 7">
+            <div class="frame-option" data-frame="/8.png">
+                <img src="/8.png" alt="Frame 8">
+            </div>
+            <div class="frame-option" data-frame="/9.png">
+                <img src="/9.png" alt="Frame 9">
             </div>
         </div>
         
@@ -643,10 +653,10 @@
     <div class="modal" id="share-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Share This Page</h2>
+                <h2>Share Your Creation</h2>
                 <button class="close-btn" id="close-share-modal">&times;</button>
             </div>
-            <p>Share Beautiful Dinajpur Frames with your friends and family!</p>
+            <p>Share your framed photo or the Beautiful Dinajpur Frames app with your friends!</p>
             <div class="share-options">
                 <a href="#" class="share-btn" id="fb-share">
                     <div class="share-icon fb-share">
@@ -678,6 +688,16 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <script>
+        // Initialize Facebook SDK
+        window.fbAsyncInit = function() {
+            FB.init({
+                appId: 'YOUR_APP_ID',
+                autoLogAppEvents: true,
+                xfbml: true,
+                version: 'v20.0'
+            });
+        };
+
         // Remove any Facebook click ID parameters from URL
         if (window.history.replaceState) {
             const cleanURL = window.location.href.split('?')[0];
@@ -724,11 +744,10 @@
 
         // Set up share URLs
         const currentUrl = encodeURIComponent(window.location.href);
-        const shareText = encodeURIComponent("Check out Beautiful Dinajpur Frames - create amazing photos with beautiful frames from Dinajpur!");
-        
-        fbShare.href = `https://www.facebook.com/sharer/sharer.php?u=${currentUrl}`;
+        const shareText = encodeURIComponent("Check out my framed photo made with Beautiful Dinajpur Frames! Create your own at");
+
         whatsappShare.href = `https://wa.me/?text=${shareText}%20${currentUrl}`;
-        twitterShare.href = `https://twitter.com/intent/tweet?text=${shareText}&url=${currentUrl}`;
+        twitterShare.href = `https://twitter.com/intent/tweet?text=${shareText}%20${currentUrl}`;
         telegramShare.href = `https://t.me/share/url?url=${currentUrl}&text=${shareText}`;
 
         function updateTransform() {
@@ -782,13 +801,109 @@
         });
 
         // Mobile menu toggle
-        mobileMenuToggle.addEventListener('click', () => {
+        mobileMenuToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
             mobileNav.classList.toggle('open');
         });
 
-        // Close share modal
-        closeShareModal.addEventListener('click', () => {
-            shareModal.style.display = 'none';
+        // Close mobile nav when clicking a menu item
+        mobileNav.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                mobileNav.classList.remove('open');
+            });
+        });
+
+        // Facebook share functionality
+        fbShare.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (!userPhoto.src) {
+                alert('Please upload a photo first!');
+                shareModal.style.display = 'none';
+                return;
+            }
+
+            // Generate the framed image (same as download logic)
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const size = 800;
+            canvas.width = size;
+            canvas.height = size;
+
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.src = userPhoto.src;
+            img.onload = () => {
+                const wrapperWidth = photoWrapper.clientWidth;
+                const scaleFactor = size / wrapperWidth;
+                const scaledWidth = img.width * scale * scaleFactor;
+                const scaledHeight = img.height * scale * scaleFactor;
+                const offsetX = posX * scaleFactor;
+                const offsetY = posY * scaleFactor;
+                
+                ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+
+                const frameImg = new Image();
+                frameImg.crossOrigin = 'anonymous';
+                frameImg.src = frame.src;
+                frameImg.onload = () => {
+                    ctx.drawImage(frameImg, 0, 0, size, size);
+
+                    // Convert canvas to data URL
+                    const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+
+                    // Download the image
+                    const link = document.createElement('a');
+                    link.download = 'beautiful-dinajpur-frame.jpg';
+                    link.href = imageDataUrl;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    // Open Facebook Share Dialog
+                    FB.ui({
+                        method: 'share',
+                        href: window.location.href,
+                        quote: 'Check out my framed photo made with Beautiful Dinajpur Frames! Create your own now!',
+                    }, function(response) {
+                        if (response && !response.error_message) {
+                            alert('Your photo has been downloaded. You can upload it to Facebook from the share dialog that just opened.');
+                        } else {
+                            alert('Error sharing to Facebook. Please try again or upload the downloaded image manually.');
+                        }
+                    });
+
+                    shareModal.style.display = 'none';
+                };
+                
+                frameImg.onerror = () => {
+                    // Fallback if frame fails to load
+                    const link = document.createElement('a');
+                    link.download = 'beautiful-dinajpur-frame.jpg';
+                    link.href = canvas.toDataURL('image/jpeg', 0.9);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    FB.ui({
+                        method: 'share',
+                        href: window.location.href,
+                        quote: 'Check out my framed photo made with Beautiful Dinajpur Frames! Create your own now!',
+                    }, function(response) {
+                        if (response && !response.error_message) {
+                            alert('Your photo has been downloaded. You can upload it to Facebook from the share dialog that just opened.');
+                        } else {
+                            alert('Error sharing to Facebook. Please try again or upload the downloaded image manually.');
+                        }
+                    });
+
+                    shareModal.style.display = 'none';
+                };
+            };
+            
+            img.onerror = () => {
+                alert('Error loading the image. Please try again.');
+                shareModal.style.display = 'none';
+            };
         });
 
         upload.addEventListener('change', (e) => {
@@ -797,11 +912,9 @@
                 const reader = new FileReader();
                 reader.onload = (ev) => {
                     currentImageSrc = ev.target.result;
-                    // Show crop modal with the uploaded image
                     cropImage.src = currentImageSrc;
                     cropModal.style.display = 'flex';
                     
-                    // Initialize cropper
                     if (cropper) {
                         cropper.destroy();
                     }
@@ -820,7 +933,6 @@
             }
         });
 
-        // Close crop modal
         closeCropModal.addEventListener('click', () => {
             cropModal.style.display = 'none';
             if (cropper) {
@@ -828,7 +940,6 @@
             }
         });
 
-        // Skip cropping
         cropSkip.addEventListener('click', () => {
             userPhoto.src = currentImageSrc;
             cropModal.style.display = 'none';
@@ -837,10 +948,8 @@
             }
         });
 
-        // Confirm crop
         cropConfirm.addEventListener('click', () => {
             if (cropper) {
-                // Get cropped canvas
                 const canvas = cropper.getCroppedCanvas({
                     width: 800,
                     height: 800,
@@ -848,10 +957,8 @@
                     imageSmoothingQuality: 'high'
                 });
                 
-                // Convert canvas to data URL and set as user photo
                 userPhoto.src = canvas.toDataURL('image/jpeg', 0.9);
                 
-                // Close modal
                 cropModal.style.display = 'none';
                 cropper.destroy();
             }
@@ -861,26 +968,22 @@
 
         resetButton.addEventListener('click', resetPhoto);
 
-        // Fast download functionality
         downloadButton.addEventListener('click', () => {
             if (!userPhoto.src) {
                 alert('Please upload a photo first!');
                 return;
             }
             
-            // Create canvas for drawing
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            const size = 800; // Higher resolution for download
+            const size = 800;
             canvas.width = size;
             canvas.height = size;
 
-            // Draw the user photo first
             const img = new Image();
             img.crossOrigin = 'anonymous';
             img.src = userPhoto.src;
             img.onload = () => {
-                // Draw the photo without clipping for rectangular frame
                 const wrapperWidth = photoWrapper.clientWidth;
                 const scaleFactor = size / wrapperWidth;
                 const scaledWidth = img.width * scale * scaleFactor;
@@ -888,17 +991,14 @@
                 const offsetX = posX * scaleFactor;
                 const offsetY = posY * scaleFactor;
                 
-                // Draw the photo
                 ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
 
-                // Draw the frame on top
                 const frameImg = new Image();
                 frameImg.crossOrigin = 'anonymous';
                 frameImg.src = frame.src;
                 frameImg.onload = () => {
                     ctx.drawImage(frameImg, 0, 0, size, size);
                     
-                    // Create download link
                     const link = document.createElement('a');
                     link.download = 'beautiful-dinajpur-frame.png';
                     link.href = canvas.toDataURL('image/png', 1.0);
@@ -906,14 +1006,12 @@
                     link.click();
                     document.body.removeChild(link);
 
-                    // Show share modal after download
                     setTimeout(() => {
                         shareModal.style.display = 'flex';
                     }, 1000);
                 };
                 
                 frameImg.onerror = () => {
-                    // If frame fails to load, just download the photo
                     const link = document.createElement('a');
                     link.download = 'beautiful-dinajpur-frame.png';
                     link.href = canvas.toDataURL('image/png', 1.0);
@@ -921,7 +1019,6 @@
                     link.click();
                     document.body.removeChild(link);
 
-                    // Show share modal after download
                     setTimeout(() => {
                         shareModal.style.display = 'flex';
                     }, 1000);
@@ -933,7 +1030,6 @@
             };
         });
 
-        // Mouse events
         photoWrapper.addEventListener('mousedown', (e) => {
             e.preventDefault();
             isDragging = true;
@@ -972,7 +1068,6 @@
             updateTransform();
         });
 
-        // Touch events
         photoWrapper.addEventListener('touchstart', (e) => {
             e.preventDefault();
             if (e.touches.length === 1) {
@@ -1023,7 +1118,6 @@
             isPinching = false;
         });
 
-        // Close modals when clicking outside
         window.addEventListener('click', (e) => {
             if (e.target === cropModal) {
                 cropModal.style.display = 'none';
@@ -1033,6 +1127,9 @@
             }
             if (e.target === shareModal) {
                 shareModal.style.display = 'none';
+            }
+            if (e.target !== mobileMenuToggle && !mobileNav.contains(e.target)) {
+                mobileNav.classList.remove('open');
             }
         });
     </script>
