@@ -3,17 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Draggable Separator & Logo with Zoomable Image</title>
+<title>News Poster Editor with Download</title>
 <style>
   body {
     font-family: Arial, sans-serif;
     background: #f5f5f5;
     padding: 20px;
     text-align: center;
+    margin: 0;
   }
 
   .poster {
-    width: 400px;
+    width: 100%;
+    max-width: 400px;
     border: 5px solid green;
     margin: auto;
     background: white;
@@ -34,10 +36,11 @@
   .poster img.uploaded {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain; /* Changed from cover to contain to show full image */
     display: block;
     transform-origin: center center;
     transition: transform 0.1s ease;
+    background-color: #f0f0f0; /* Background for images with transparency */
   }
 
   .draggable-group {
@@ -51,20 +54,22 @@
 
   .separator {
     position: relative;
-    height: 60px;
+    height: 80px; /* Separator er total height boro kora holo */
     margin: 0;
-  }
+}
 
-  .separator::before {
+.separator::before {
     content: "";
     position: absolute;
     top: 50%;
     left: 0;
-    width: 100%;
-    height: 3px;
+    width: 100%; /* line er width */
+    height: 15px; /* line er mota boro kora holo */
     background: green;
     transform: translateY(-50%);
-  }
+    border-radius: 3px; /* line ke thoda rounded korar jonno */
+}
+
 
   .logo-circle {
     position: absolute;
@@ -99,31 +104,83 @@
     top: 0;
   }
 
+  .content-area {
+    background: white;
+    min-height: 100px;
+    position: relative;
+    overflow: hidden;
+    transition: min-height 0.3s ease;
+  }
+
   .footer {
     display: flex;
     justify-content: space-between;
     font-size: 14px;
     padding: 10px;
-    color: #333;
+    color: white; /* Changed to white */
+    background-color: green; /* Added green background */
   }
 
   .controls {
     margin-bottom: 20px;
+    padding: 10px;
   }
 
   input {
     margin: 5px;
     padding: 8px;
-    width: 250px;
+    width: 90%;
+    max-width: 300px;
+    box-sizing: border-box;
   }
   
   .zoom-controls {
     margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 5px;
   }
   
   .zoom-controls button {
-    padding: 5px 10px;
-    margin: 0 5px;
+    padding: 8px 12px;
+    margin: 5px;
+    cursor: pointer;
+    background: green;
+    color: white;
+    border: none;
+    border-radius: 4px;
+  }
+  
+  .download-btn {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    margin-top: 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background 0.3s;
+  }
+  
+  .download-btn:hover {
+    background: #45a049;
+  }
+  
+  .expand-controls {
+    margin: 10px 0;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+  }
+  
+  .expand-controls button {
+    padding: 8px 15px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
     cursor: pointer;
   }
   
@@ -145,28 +202,34 @@
     background: white;
     padding: 20px;
     border-radius: 8px;
-    max-width: 80%;
-    max-height: 80%;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
     overflow: auto;
   }
   
   .crop-area {
     position: relative;
-    max-width: 100%;
-    max-height: 400px;
+    width: 100%;
+    height: 300px;
     overflow: hidden;
     margin-bottom: 15px;
+    background: #f0f0f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
   
   #cropImage {
     max-width: 100%;
+    max-height: 100%;
     display: block;
   }
   
   .crop-box {
     position: absolute;
-    top: 0;
-    left: 0;
+    top: 50px;
+    left: 50px;
     width: 200px;
     height: 200px;
     border: 2px dashed #fff;
@@ -191,6 +254,7 @@
     display: flex;
     justify-content: center;
     gap: 10px;
+    margin-top: 15px;
   }
   
   .crop-controls button {
@@ -206,13 +270,60 @@
     background: #ccc;
     color: #333;
   }
+  
+  .crop-instructions {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #666;
+    text-align: center;
+  }
+
+  /* Mobile-specific styles */
+  @media (max-width: 480px) {
+    .poster {
+      width: 100%;
+      max-width: 350px;
+    }
+    
+    .image-container {
+      height: 200px;
+    }
+    
+    .headline {
+      font-size: 18px;
+    }
+    
+    .footer {
+      flex-direction: column;
+      text-align: center;
+      gap: 5px;
+    }
+    
+    .zoom-controls {
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .zoom-controls button {
+      width: 80%;
+    }
+    
+    .expand-controls {
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .expand-controls button {
+      width: 80%;
+    }
+  }
 </style>
 </head>
 <body>
 <h2>News Poster Live Preview (Draggable Separator + Logo + Zoomable Image)</h2>
 
 <div class="controls">
-  <input type="file" id="imageInput"><br>
+  <input type="file" id="imageInput" accept="image/*"><br>
   <input type="text" id="headlineInput" placeholder="Enter Headline"><br>
   <input type="text" id="creditInput" placeholder="Enter Credits"><br>
   <div class="zoom-controls">
@@ -221,6 +332,11 @@
     <button id="resetImage">Reset Image</button>
     <button id="cropImageBtn">Crop Image</button>
   </div>
+  <div class="expand-controls">
+    <button id="expandContent">Expand White Area</button>
+    <button id="shrinkContent">Shrink White Area</button>
+  </div>
+  <button id="downloadBtn" class="download-btn">Download Poster</button>
 </div>
 
 <div class="poster" id="poster">
@@ -233,13 +349,16 @@
   <div class="draggable-group" id="draggableGroup">
     <div class="separator">
       <div class="logo-circle">
-        <img src="https://i.postimg.cc/8cqjpFbR/dinlogo-copy.png" alt="Logo">
+        <img src="/dinlogo.png" alt="Logo">
       </div>
     </div>
   </div>
 
-  <!-- Headline BELOW separator -->
-  <div class="headline" id="headline">Your Headline Here</div>
+  <!-- Content Area (White Background) -->
+  <div class="content-area" id="contentArea">
+    <!-- Headline BELOW separator -->
+    <div class="headline" id="headline">Your Headline Here</div>
+  </div>
 
   <!-- Footer -->
   <div class="footer">
@@ -261,6 +380,9 @@
         <div class="crop-handle handle-se"></div>
       </div>
     </div>
+    <div class="crop-instructions">
+      Drag the box to move, drag handles to resize
+    </div>
     <div class="crop-controls">
       <button id="applyCrop">Apply Crop</button>
       <button id="cancelCrop" class="cancel">Cancel</button>
@@ -268,6 +390,7 @@
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
   // Auto date
   const today = new Date();
@@ -298,6 +421,22 @@
     document.getElementById("credit").textContent = "Credits: " + this.value;
   });
 
+  // Expand/Shrink white content area
+  const contentArea = document.getElementById('contentArea');
+  let contentHeight = 100; // Default height in pixels
+  
+  document.getElementById('expandContent').addEventListener('click', function() {
+    contentHeight += 50;
+    contentArea.style.minHeight = contentHeight + 'px';
+  });
+  
+  document.getElementById('shrinkContent').addEventListener('click', function() {
+    if (contentHeight > 50) {
+      contentHeight -= 50;
+      contentArea.style.minHeight = contentHeight + 'px';
+    }
+  });
+
   // Draggable functionality for separator
   const draggable = document.getElementById('draggableGroup');
   let offsetY = 0;
@@ -324,6 +463,27 @@
     draggable.style.cursor = 'grab';
   });
 
+  // Touch events for mobile
+  draggable.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    isDraggingSeparator = true;
+    offsetY = e.touches[0].clientY - draggable.getBoundingClientRect().top;
+  });
+
+  document.addEventListener('touchmove', function(e) {
+    if (isDraggingSeparator) {
+      const posterTop = document.getElementById('poster').getBoundingClientRect().top;
+      let newTop = e.touches[0].clientY - posterTop - offsetY;
+      if(newTop < 0) newTop = 0;
+      if(newTop > 250) newTop = 250;
+      draggable.style.top = newTop + 'px';
+    }
+  });
+
+  document.addEventListener('touchend', function() {
+    isDraggingSeparator = false;
+  });
+
   // Image zoom and pan functionality
   const imageContainer = document.getElementById('imageContainer');
   const uploadedImage = document.getElementById('uploadedImage');
@@ -333,10 +493,8 @@
   let isDraggingImage = false;
   let startX, startY, initialPosX, initialPosY;
 
-  // Mouse events for image panning
+  // Mouse events for image panning - ALWAYS allow dragging
   imageContainer.addEventListener('mousedown', function(e) {
-    if (scale <= 1) return; // Only allow dragging when zoomed in
-    
     isDraggingImage = true;
     startX = e.clientX;
     startY = e.clientY;
@@ -352,18 +510,138 @@
     const dy = e.clientY - startY;
     
     // Calculate new position with boundaries
-    const maxX = (scale - 1) * uploadedImage.width / 2;
-    const maxY = (scale - 1) * uploadedImage.height / 2;
+    const imgWidth = uploadedImage.naturalWidth * scale;
+    const imgHeight = uploadedImage.naturalHeight * scale;
+    const containerWidth = imageContainer.offsetWidth;
+    const containerHeight = imageContainer.offsetHeight;
     
-    posX = Math.min(Math.max(initialPosX + dx, -maxX), maxX);
-    posY = Math.min(Math.max(initialPosY + dy, -maxY), maxY);
+    const maxX = Math.max(0, (imgWidth - containerWidth) / 2);
+    const maxY = Math.max(0, (imgHeight - containerHeight) / 2);
+    
+    posX = initialPosX + dx;
+    posY = initialPosY + dy;
+    
+    // Apply boundaries only if zoomed in
+    if (scale > 1) {
+      posX = Math.min(Math.max(posX, -maxX), maxX);
+      posY = Math.min(Math.max(posY, -maxY), maxY);
+    } else {
+      // Reset to center if not zoomed
+      posX = 0;
+      posY = 0;
+    }
     
     updateImageTransform();
   });
 
   document.addEventListener('mouseup', function() {
     isDraggingImage = false;
-    imageContainer.style.cursor = scale > 1 ? 'grab' : 'default';
+    imageContainer.style.cursor = 'grab';
+  });
+
+  // Touch events for mobile
+  imageContainer.addEventListener('touchstart', function(e) {
+    if (e.touches.length === 1) {
+      isDraggingImage = true;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      initialPosX = posX;
+      initialPosY = posY;
+    } else if (e.touches.length === 2) {
+      // Handle pinch zoom
+      isDraggingImage = false;
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const distance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      );
+      
+      // Store initial values for zooming
+      imageContainer.dataset.initialDistance = distance;
+      imageContainer.dataset.initialScale = scale;
+      imageContainer.dataset.midX = (touch1.clientX + touch2.clientX) / 2;
+      imageContainer.dataset.midY = (touch1.clientY + touch2.clientY) / 2;
+    }
+  });
+
+  document.addEventListener('touchmove', function(e) {
+    if (isDraggingImage && e.touches.length === 1) {
+      const dx = e.touches[0].clientX - startX;
+      const dy = e.touches[0].clientY - startY;
+      
+      // Calculate new position with boundaries
+      const imgWidth = uploadedImage.naturalWidth * scale;
+      const imgHeight = uploadedImage.naturalHeight * scale;
+      const containerWidth = imageContainer.offsetWidth;
+      const containerHeight = imageContainer.offsetHeight;
+      
+      const maxX = Math.max(0, (imgWidth - containerWidth) / 2);
+      const maxY = Math.max(0, (imgHeight - containerHeight) / 2);
+      
+      posX = initialPosX + dx;
+      posY = initialPosY + dy;
+      
+      // Apply boundaries only if zoomed in
+      if (scale > 1) {
+        posX = Math.min(Math.max(posX, -maxX), maxX);
+        posY = Math.min(Math.max(posY, -maxY), maxY);
+      }
+      
+      updateImageTransform();
+    } else if (e.touches.length === 2) {
+      // Handle pinch zoom
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const distance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      );
+      
+      const initialDistance = parseFloat(imageContainer.dataset.initialDistance);
+      const initialScale = parseFloat(imageContainer.dataset.initialScale);
+      const midX = parseFloat(imageContainer.dataset.midX);
+      const midY = parseFloat(imageContainer.dataset.midY);
+      
+      if (initialDistance) {
+        const zoom = distance / initialDistance;
+        const newScale = Math.min(Math.max(initialScale * zoom, 0.5), 5);
+        
+        if (newScale !== scale) {
+          // Calculate the position relative to the image
+          const rect = imageContainer.getBoundingClientRect();
+          const relativeX = midX - rect.left;
+          const relativeY = midY - rect.top;
+          
+          const imageX = (relativeX - containerWidth / 2 - posX) / scale;
+          const imageY = (relativeY - containerHeight / 2 - posY) / scale;
+          
+          scale = newScale;
+          
+          // Adjust position to zoom toward the midpoint
+          posX = -(imageX * scale - relativeX + containerWidth / 2);
+          posY = -(imageY * scale - relativeY + containerHeight / 2);
+          
+          // Apply boundaries if zoomed in
+          if (scale > 1) {
+            const imgWidth = uploadedImage.naturalWidth * scale;
+            const imgHeight = uploadedImage.naturalHeight * scale;
+            const maxX = Math.max(0, (imgWidth - containerWidth) / 2);
+            const maxY = Math.max(0, (imgHeight - containerHeight) / 2);
+            
+            posX = Math.min(Math.max(posX, -maxX), maxX);
+            posY = Math.min(Math.max(posY, -maxY), maxY);
+          }
+          
+          updateImageTransform();
+        }
+      }
+    }
+  });
+
+  document.addEventListener('touchend', function() {
+    isDraggingImage = false;
+    delete imageContainer.dataset.initialDistance;
   });
 
   // Wheel event for zooming
@@ -379,7 +657,7 @@
     const zoom = Math.exp(wheel * zoomIntensity);
     
     // Calculate new scale with limits
-    const newScale = Math.min(Math.max(scale * zoom, 1), 5);
+    const newScale = Math.min(Math.max(scale * zoom, 0.5), 5);
     
     if (newScale === scale) return;
     
@@ -393,37 +671,91 @@
     posX = -(imageX * scale - mouseX + rect.width / 2);
     posY = -(imageY * scale - mouseY + rect.height / 2);
     
-    // Apply boundaries
-    const maxX = Math.max(0, (scale - 1) * uploadedImage.width / 2);
-    const maxY = Math.max(0, (scale - 1) * uploadedImage.height / 2);
-    
-    posX = Math.min(Math.max(posX, -maxX), maxX);
-    posY = Math.min(Math.max(posY, -maxY), maxY);
+    // Apply boundaries if zoomed in
+    if (scale > 1) {
+      const imgWidth = uploadedImage.naturalWidth * scale;
+      const imgHeight = uploadedImage.naturalHeight * scale;
+      const maxX = Math.max(0, (imgWidth - rect.width) / 2);
+      const maxY = Math.max(0, (imgHeight - rect.height) / 2);
+      
+      posX = Math.min(Math.max(posX, -maxX), maxX);
+      posY = Math.min(Math.max(posY, -maxY), maxY);
+    }
     
     updateImageTransform();
-    imageContainer.style.cursor = scale > 1 ? 'grab' : 'default';
+    imageContainer.style.cursor = 'grab';
   });
 
   // Button controls
   document.getElementById('zoomIn').addEventListener('click', function() {
-    scale = Math.min(scale + 0.2, 5);
-    updateImageTransform();
-    imageContainer.style.cursor = scale > 1 ? 'grab' : 'default';
-  });
-
-  document.getElementById('zoomOut').addEventListener('click', function() {
-    scale = Math.max(scale - 0.2, 0.1); // allow zoom smaller than 1, set minimum 0.1
+    const rect = imageContainer.getBoundingClientRect();
+    const mouseX = rect.width / 2;
+    const mouseY = rect.height / 2;
     
-    // Reset position if back to default scale (optional)
-    if (scale === 1) {
-      posX = 0;
-      posY = 0;
+    // Calculate new scale with limits
+    const newScale = Math.min(scale + 0.2, 5);
+    
+    if (newScale === scale) return;
+    
+    // Calculate mouse position relative to image
+    const imageX = (mouseX - rect.width / 2 - posX) / scale;
+    const imageY = (mouseY - rect.height / 2 - posY) / scale;
+    
+    scale = newScale;
+    
+    // Adjust position to zoom toward center
+    posX = -(imageX * scale - mouseX + rect.width / 2);
+    posY = -(imageY * scale - mouseY + rect.height / 2);
+    
+    // Apply boundaries if zoomed in
+    if (scale > 1) {
+      const imgWidth = uploadedImage.naturalWidth * scale;
+      const imgHeight = uploadedImage.naturalHeight * scale;
+      const maxX = Math.max(0, (imgWidth - rect.width) / 2);
+      const maxY = Math.max(0, (imgHeight - rect.height) / 2);
+      
+      posX = Math.min(Math.max(posX, -maxX), maxX);
+      posY = Math.min(Math.max(posY, -maxY), maxY);
     }
     
     updateImageTransform();
-    imageContainer.style.cursor = scale !== 1 ? 'grab' : 'default';
-});
+    imageContainer.style.cursor = 'grab';
+  });
 
+  document.getElementById('zoomOut').addEventListener('click', function() {
+    const rect = imageContainer.getBoundingClientRect();
+    const mouseX = rect.width / 2;
+    const mouseY = rect.height / 2;
+    
+    // Calculate new scale with limits
+    const newScale = Math.max(scale - 0.2, 0.5);
+    
+    if (newScale === scale) return;
+    
+    // Calculate mouse position relative to image
+    const imageX = (mouseX - rect.width / 2 - posX) / scale;
+    const imageY = (mouseY - rect.height / 2 - posY) / scale;
+    
+    scale = newScale;
+    
+    // Adjust position to zoom toward center
+    posX = -(imageX * scale - mouseX + rect.width / 2);
+    posY = -(imageY * scale - mouseY + rect.height / 2);
+    
+    // Reset position if back to normal scale
+    if (scale <= 1) {
+      const imgWidth = uploadedImage.naturalWidth * scale;
+      const imgHeight = uploadedImage.naturalHeight * scale;
+      const maxX = Math.max(0, (imgWidth - rect.width) / 2);
+      const maxY = Math.max(0, (imgHeight - rect.height) / 2);
+      
+      posX = Math.min(Math.max(posX, -maxX), maxX);
+      posY = Math.min(Math.max(posY, -maxY), maxY);
+    }
+    
+    updateImageTransform();
+    imageContainer.style.cursor = scale > 1 ? 'grab' : 'default';
+  });
 
   document.getElementById('resetImage').addEventListener('click', resetImagePosition);
 
@@ -439,21 +771,28 @@
     imageContainer.style.cursor = 'default';
   }
 
-  // Image Cropping Functionality
+  // Image Cropping Functionality - Fixed Implementation
   const cropModal = document.getElementById('cropModal');
   const cropImageBtn = document.getElementById('cropImageBtn');
-  const cropImage = document.getElementById('cropImage');
+  const cropImgElement = document.getElementById('cropImage');
   const cropBox = document.getElementById('cropBox');
   const applyCrop = document.getElementById('applyCrop');
   const cancelCrop = document.getElementById('cancelCrop');
+  const cropArea = document.getElementById('cropArea');
   
-  let isCropping = false;
   let cropData = {
-    x: 0,
-    y: 0,
+    x: 50,
+    y: 50,
     width: 200,
     height: 200
   };
+  
+  let imageAspectRatio = 1;
+  let isDraggingCrop = false;
+  let isResizingCrop = false;
+  let resizeDirection = '';
+  let startCropX, startCropY;
+  let naturalWidth, naturalHeight;
   
   // Open crop modal
   cropImageBtn.addEventListener('click', function() {
@@ -462,21 +801,34 @@
       return;
     }
     
-    cropImage.src = uploadedImage.src;
+    cropImgElement.src = uploadedImage.src;
     cropModal.style.display = 'flex';
     
-    // Initialize crop box position
-    const cropArea = document.getElementById('cropArea');
-    const areaRect = cropArea.getBoundingClientRect();
-    
-    cropData = {
-      x: (areaRect.width - 200) / 2,
-      y: (areaRect.height - 200) / 2,
-      width: 200,
-      height: 200
+    // Calculate aspect ratio of the image
+    const img = new Image();
+    img.onload = function() {
+      naturalWidth = img.naturalWidth;
+      naturalHeight = img.naturalHeight;
+      imageAspectRatio = naturalWidth / naturalHeight;
+      
+      // Initialize crop box position
+      const areaWidth = cropArea.offsetWidth;
+      const areaHeight = cropArea.offsetHeight;
+      
+      // Set initial crop box size based on image aspect ratio
+      const boxWidth = Math.min(areaWidth * 0.6, areaHeight * 0.6 * imageAspectRatio);
+      const boxHeight = boxWidth / imageAspectRatio;
+      
+      cropData = {
+        x: (areaWidth - boxWidth) / 2,
+        y: (areaHeight - boxHeight) / 2,
+        width: boxWidth,
+        height: boxHeight
+      };
+      
+      updateCropBox();
     };
-    
-    updateCropBox();
+    img.src = uploadedImage.src;
   });
   
   // Close crop modal
@@ -496,16 +848,28 @@
     // Calculate scaling factor (original image vs displayed image)
     const img = new Image();
     img.onload = function() {
-      const scaleX = img.width / cropImage.width;
-      const scaleY = img.height / cropImage.height;
+      // Get the displayed image dimensions
+      const displayedWidth = cropImgElement.naturalWidth;
+      const displayedHeight = cropImgElement.naturalHeight;
+      
+      // Calculate the scale between the original image and the displayed image
+      const scaleX = naturalWidth / displayedWidth;
+      const scaleY = naturalHeight / displayedHeight;
+      
+      // Calculate the position of the image within the crop area
+      const imgX = (cropArea.offsetWidth - displayedWidth) / 2;
+      const imgY = (cropArea.offsetHeight - displayedHeight) / 2;
+      
+      // Calculate the actual crop coordinates relative to the original image
+      const cropX = (cropData.x - imgX) * scaleX;
+      const cropY = (cropData.y - imgY) * scaleY;
+      const cropWidth = cropData.width * scaleX;
+      const cropHeight = cropData.height * scaleY;
       
       // Draw cropped portion on canvas
       ctx.drawImage(
         img,
-        cropData.x * scaleX,
-        cropData.y * scaleY,
-        cropData.width * scaleX,
-        cropData.height * scaleY,
+        cropX, cropY, cropWidth, cropHeight,
         0, 0, cropData.width, cropData.height
       );
       
@@ -522,12 +886,10 @@
   });
   
   // Make crop box draggable and resizable
-  let isDraggingCrop = false;
-  let isResizingCrop = false;
-  let resizeDirection = '';
-  let startCropX, startCropY;
-  
   cropBox.addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (e.target.classList.contains('crop-handle')) {
       isResizingCrop = true;
       resizeDirection = e.target.classList[1].split('-')[1];
@@ -539,21 +901,60 @@
     startCropY = e.clientY;
   });
   
+  // Touch events for crop box
+  cropBox.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (e.target.classList.contains('crop-handle')) {
+      isResizingCrop = true;
+      resizeDirection = e.target.classList[1].split('-')[1];
+    } else {
+      isDraggingCrop = true;
+    }
+    
+    startCropX = e.touches[0].clientX;
+    startCropY = e.touches[0].clientY;
+  });
+  
   document.addEventListener('mousemove', function(e) {
     if (!isDraggingCrop && !isResizingCrop) return;
     
     const dx = e.clientX - startCropX;
     const dy = e.clientY - startCropY;
     
+    handleCropMove(dx, dy, e.shiftKey);
+    
+    startCropX = e.clientX;
+    startCropY = e.clientY;
+  });
+  
+  document.addEventListener('touchmove', function(e) {
+    if (!isDraggingCrop && !isResizingCrop) return;
+    
+    const dx = e.touches[0].clientX - startCropX;
+    const dy = e.touches[0].clientY - startCropY;
+    
+    handleCropMove(dx, dy, false); // Shift key not available in touch
+    
+    startCropX = e.touches[0].clientX;
+    startCropY = e.touches[0].clientY;
+  });
+  
+  function handleCropMove(dx, dy, maintainAspect) {
     if (isDraggingCrop) {
       // Move the crop box
       cropData.x += dx;
       cropData.y += dy;
       
       // Constrain within image bounds
-      const cropArea = document.getElementById('cropArea');
-      cropData.x = Math.max(0, Math.min(cropData.x, cropArea.offsetWidth - cropData.width));
-      cropData.y = Math.max(0, Math.min(cropData.y, cropArea.offsetHeight - cropData.height));
+      const imgX = (cropArea.offsetWidth - cropImgElement.naturalWidth) / 2;
+      const imgY = (cropArea.offsetHeight - cropImgElement.naturalHeight) / 2;
+      const imgRight = imgX + cropImgElement.naturalWidth;
+      const imgBottom = imgY + cropImgElement.naturalHeight;
+      
+      cropData.x = Math.max(imgX, Math.min(cropData.x, imgRight - cropData.width));
+      cropData.y = Math.max(imgY, Math.min(cropData.y, imgBottom - cropData.height));
     } else if (isResizingCrop) {
       // Resize the crop box based on direction
       const minSize = 50;
@@ -574,15 +975,26 @@
         cropData.y += cropData.height - newHeight;
         cropData.height = newHeight;
       }
+      
+      // Maintain aspect ratio if shift key is pressed
+      if (maintainAspect) {
+        if (resizeDirection.includes('e') || resizeDirection.includes('w')) {
+          cropData.height = cropData.width / imageAspectRatio;
+        } else if (resizeDirection.includes('s') || resizeDirection.includes('n')) {
+          cropData.width = cropData.height * imageAspectRatio;
+        }
+      }
     }
     
     updateCropBox();
-    
-    startCropX = e.clientX;
-    startCropY = e.clientY;
-  });
+  }
   
   document.addEventListener('mouseup', function() {
+    isDraggingCrop = false;
+    isResizingCrop = false;
+  });
+  
+  document.addEventListener('touchend', function() {
     isDraggingCrop = false;
     isResizingCrop = false;
   });
@@ -593,6 +1005,32 @@
     cropBox.style.width = cropData.width + 'px';
     cropBox.style.height = cropData.height + 'px';
   }
+  
+  // Close modal if clicked outside
+  window.addEventListener('click', function(e) {
+    if (e.target === cropModal) {
+      cropModal.style.display = 'none';
+    }
+  });
+
+  // Download functionality
+  document.getElementById('downloadBtn').addEventListener('click', function() {
+    // Use html2canvas to capture the poster as an image
+    html2canvas(document.getElementById('poster')).then(function(canvas) {
+      // Convert canvas to data URL
+      const imageData = canvas.toDataURL('image/jpeg');
+      
+      // Create a temporary link element
+      const link = document.createElement('a');
+      link.href = imageData;
+      link.download = 'news-poster.jpg';
+      
+      // Trigger the download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+  });
 </script>
 </body>
 </html>
