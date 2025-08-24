@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Beautiful Dinajpur</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg: radial-gradient(1200px 600px at 10% -10%, #5ee7df55, transparent 60%),
+            radial-gradient(1000px 800px at 110% 10%, #b490ca55, transparent 45%),
+            linear-gradient(135deg, #0f1021, #1b1c31 60%, #0f1021);
+      --glass-bg: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
+      --glass-border: 1px solid rgba(255,255,255,0.18);
+      --text: #ecf0ff;
+      --muted: #b9c0ff;
+      --accent: #7cf1e1;
+      --accent-2: #b490ca;
+      --shadow: 0 30px 50px rgba(0,0,0,0.35);
+      --btn-shadow: 0 12px 24px rgba(0,0,0,0.35);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body{
+      margin:0; font-family: Poppins, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      background-attachment: fixed;
+      overflow-x: hidden;
+    }
+
+    /* AppBar */
+    .appbar {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px; margin: 16px; border-radius: 18px;
+      background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border: var(--glass-border);
+      box-shadow: var(--shadow);
+    }
+    .brand { display:flex; align-items:center; gap:12px; font-weight:700; letter-spacing:0.4px; }
+    .brand .logo {
+      width:40px; height:40px; display:grid; place-items:center; border-radius:12px;
+      background: radial-gradient(60% 60% at 35% 35%, #7cf1e1, transparent),
+                  radial-gradient(60% 60% at 70% 70%, #b490ca, transparent),
+                  linear-gradient(135deg, #2a2b4a, #0f1021);
+      box-shadow: inset 0 6px 16px rgba(255,255,255,0.1), inset 0 -6px 16px rgba(0,0,0,0.4), 0 10px 20px rgba(0,0,0,0.45);
+    }
+    .brand .logo svg { width:22px; height:22px; opacity:.95; }
+
+    .nav { display:flex; gap:10px; }
+    .chip { padding:8px 12px; border-radius:999px; border: var(--glass-border); background: rgba(255,255,255,0.06); color: var(--muted); font-weight:600; font-size: 13px; letter-spacing:.25px; }
+
+    /* Hero */
+    .hero { text-align:center; padding: 40px 16px 8px; }
+    .title { font-size: clamp(28px, 4vw, 42px); font-weight:800; line-height:1.15; margin:0; }
+    .subtitle { color: var(--muted); margin: 10px auto 0; max-width: 720px; font-size: clamp(14px, 2vw, 16px); }
+
+    /* Cards Section */
+    .grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; width: min(1100px, 92%); margin: 26px auto 60px; }
+    @media (max-width: 800px){ .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      position: relative; isolation: isolate; border-radius: 24px; padding: 24px; min-height: 240px;
+      background: var(--glass-bg); border: var(--glass-border); backdrop-filter: blur(18px);
+      box-shadow: var(--shadow); transform-style: preserve-3d; transition: transform .2s ease, box-shadow .2s ease;
+    }
+    .card::before{ /* 3D rim */
+      content: ""; position:absolute; inset: -1px; border-radius: 24px; pointer-events:none;
+      background: conic-gradient(from 180deg, rgba(124,241,225,0.35), rgba(180,144,202,0.2), rgba(124,241,225,0.35));
+      mix-blend-mode: overlay; filter: blur(18px); opacity:.45; z-index:-1;
+    }
+    .card:hover { box-shadow: 0 40px 80px rgba(0,0,0,.55); }
+
+    .card-head { display:flex; align-items:center; justify-content:space-between; gap:14px; }
+    .card h3 { margin: 0; font-size: clamp(20px, 2.6vw, 26px); }
+    .badge { font-size: 12px; padding: 6px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,.22); color: #0b1221;
+      background: linear-gradient(180deg, #7cf1e1, #53e0d0); box-shadow: inset 0 -4px 10px rgba(0,0,0,.18); font-weight:700; letter-spacing:.3px; }
+
+    .card p { color: var(--muted); margin: 12px 0 18px; }
+
+    .actions { display:flex; flex-wrap: wrap; gap: 12px; }
+
+    .btn {
+      appearance: none; border: none; cursor: pointer; padding: 14px 18px; border-radius: 14px; font-weight:800; letter-spacing:.4px;
+      background: linear-gradient(180deg, #8cf5e8, #6de9db 60%, #3fd3c2);
+      color: #06231f; box-shadow: var(--btn-shadow), inset 0 -6px 12px rgba(0,0,0,.15);
+      transform: translateZ(30px); transition: transform .15s ease, filter .15s ease, box-shadow .15s ease;
+    }
+    .btn:hover{ transform: translateY(-2px) translateZ(30px); filter: brightness(1.02); box-shadow: 0 16px 30px rgba(0,0,0,.45); }
+    .btn:active{ transform: translateY(1px) translateZ(30px); }
+
+    .btn-ghost{
+      background: rgba(255,255,255,0.08); color: var(--text); border: var(--glass-border);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.05), 0 8px 18px rgba(0,0,0,.25);
+    }
+
+    .icon { width: 22px; height: 22px; vertical-align: middle; margin-right: 8px; }
+
+    /* Footer */
+    footer{
+      margin: 40px 16px 24px; padding: 18px; border-radius: 18px; background: var(--glass-bg);
+      border: var(--glass-border); backdrop-filter: blur(10px); color: var(--muted); text-align:center;
+      box-shadow: var(--shadow);
+    }
+    .links { display:flex; gap: 10px; justify-content:center; flex-wrap: wrap; margin-top:8px; }
+    .link{ font-weight:600; font-size:14px; opacity:.9; text-decoration: none; color: var(--text); padding:8px 12px; border-radius:12px; background: rgba(255,255,255,0.06); border: var(--glass-border); }
+
+    /* 3D tilt */
+    .tilt { perspective: 1200px; }
+  </style>
+</head>
+<body>
+  <!-- App Bar -->
+  <header class="appbar" role="banner" aria-label="Top navigation">
+    <div class="brand" aria-label="Beautiful Dinajpur">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 7h16M4 17h16"/>
+          <rect x="6" y="9" width="12" height="6" rx="2"/>
+        </svg>
+      </div>
+      <span>Beautiful Dinajpur</span>
+    </div>
+    <nav class="nav" aria-label="Quick filters">
+      <span class="chip">3D UI</span>
+      <span class="chip">Glassmorphism</span>
+      <span class="chip">Responsive</span>
+    </nav>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero" aria-labelledby="hero-title">
+    <h1 id="hero-title" class="title">Design faster. Share sharper.</h1>
+    <p class="subtitle">Just two powerful actions to get you going — add an <strong>Image Watermark</strong> or <strong>Create Poster</strong> with a clean, modern 3D interface. Plug in your own logic later.</p>
+  </section>
+
+  <!-- Cards -->
+  <main class="grid">
+    <!-- Watermark Card -->
+    <div class="tilt">
+      <article class="card" data-tilt>
+        <div class="card-head">
+          <h3>Image Watermark</h3>
+          <span class="badge" aria-label="Feature ready">NEW</span>
+        </div>
+        <p>Protect your visuals with branded overlays. Upload an image, place your mark, adjust opacity, and export.</p>
+        <div class="actions">
+          <button class="btn" id="btnWatermark" aria-label="Open Image Watermark tool">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 20l9-5-9-5-9 5 9 5z"/>
+              <path d="M12 12V4"/>
+            </svg>
+            Image Watermark
+          </button>
+          <button class="btn btn-ghost" id="btnLearn1">Learn more</button>
+        </div>
+      </article>
+    </div>
+
+    <!-- Poster Card -->
+    <div class="tilt">
+      <article class="card" data-tilt>
+        <div class="card-head">
+          <h3>Create Poster</h3>
+          <span class="badge" aria-label="Feature ready">PRO</span>
+        </div>
+        <p>Compose attention‑grabbing posters with text, shapes, and templates. Export for social or print.</p>
+        <div class="actions">
+          <button class="btn" id="btnPoster" aria-label="Open Create Poster tool">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="14" rx="2"/>
+              <path d="M7 8h10M7 12h6"/>
+            </svg>
+            Create Poster
+          </button>
+          <button class="btn btn-ghost" id="btnLearn2">Learn more</button>
+        </div>
+      </article>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer role="contentinfo">
+    <div>© <span id="year"></span> Beautiful Dinajpur — Built with ❤</div>
+    <div class="links">
+      <a href="#" class="link" aria-label="Terms">Terms</a>
+      <a href="#" class="link" aria-label="Privacy">Privacy</a>
+      <a href="#" class="link" aria-label="Contact">Contact</a>
+    </div>
+  </footer>
+
+  <!-- Minimal JS: tilt effect + demo handlers -->
+  <script>
+    // Year
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // 3D tilt interaction
+    const tiltElems = document.querySelectorAll('[data-tilt]');
+    const strength = 10; // degrees
+    tiltElems.forEach(card => {
+      card.addEventListener('mousemove', e => {
+        const rect = card.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = (e.clientX - cx) / (rect.width / 2);
+        const dy = (e.clientY - cy) / (rect.height / 2);
+        const rotateX = dy * -strength;
+        const rotateY = dx * strength;
+        card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+      });
+      card.addEventListener('mouseleave', () => {
+        card.style.transform = 'rotateX(0) rotateY(0)';
+      });
+    });
+
+    // Button handlers: navigate to pages
+    document.getElementById('btnWatermark').addEventListener('click', () => {
+      window.location.href = 'watermark.html';
+    });
+    document.getElementById('btnPoster').addEventListener('click', () => {
+      window.location.href = 'post.html';
+    });
+
+    document.getElementById('btnLearn1').addEventListener('click', () => {
+      alert('Learn: Watermark — Upload → Position → Opacity → Export');
+    });
+    document.getElementById('btnLearn2').addEventListener('click', () => {
+      alert('Learn: Poster — Template → Edit text → Export');
+    });
+  </script>
+</body>
+</html>

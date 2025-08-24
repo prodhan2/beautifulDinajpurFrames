@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enhanced News Poster Editor</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: #f0f0f0; padding: 20px; text-align: center; }
+  h2 { margin-bottom: 20px; color: #2c3e50; }
+  .container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; max-width: 1200px; margin: 0 auto; }
+  .controls { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 300px; }
+  .poster { width: 100%; max-width: 500px; border: 5px solid green; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.2); position: relative; }
+  .image-container { width: 100%; height: 280px; overflow: hidden; position: relative; cursor: grab; }
+  .poster img.uploaded { width: 100%; height: 100%; object-fit: contain; display: block; transform-origin: center; transition: transform 0.1s; background-color: #f0f0f0; }
+  .separator-container { position: relative; width: 100%; }
+  .separator { position: relative; height: 80px; margin: 0; }
+  .separator::before { content: ""; position: absolute; top: 50%; left: 0; width: 100%; height: 15px; background: green; transform: translateY(-50%); border-radius: 3px; }
+  .logo-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80px; height: 80px; border-radius: 50%; border: 3px solid green; background: white; display: flex; align-items: center; justify-content: center; z-index: 15; }
+  .logo-circle img { width: 65px; height: 65px; border-radius: 50%; object-fit: cover; }
+  .content-area { background: white; min-height: 120px; position: relative; overflow: hidden; transition: min-height 0.3s; }
+  .headline { font-size: 24px; font-weight: bold; color: red; margin: 15px; line-height: 1.4; word-wrap: break-word; cursor: grab; position: absolute; z-index: 5; }
+  .headline-resize-handle { 
+    position: absolute; 
+    bottom: -8px; 
+    right: -8px; 
+    width: 16px; 
+    height: 16px; 
+    background: green; 
+    border-radius: 50%; 
+    cursor: nwse-resize; 
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .headline:hover .headline-resize-handle {
+    opacity: 1;
+  }
+  .footer { display: flex; justify-content: space-between; font-size: 16px; padding: 12px; color: white; background-color: green; }
+  .footer #date { text-align: left; flex: 1; }
+  .footer #credit { text-align: right; flex: 1; }
+  input, textarea { margin: 8px 0; padding: 10px; width: 100%; border: 1px solid #ddd; border-radius: 5px; }
+  textarea { height: 80px; resize: vertical; }
+  .icon-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 15px 0; }
+  .icon-btn { width: 45px; height: 45px; border-radius: 50%; background: green; color: white; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: all 0.3s; }
+  .icon-btn:hover { background: #2e8b57; transform: scale(1.1); }
+  .download-btn { background: #4CAF50; color: white; border: none; padding: 12px 24px; margin-top: 15px; border-radius: 6px; cursor: pointer; font-size: 16px; transition: background 0.3s; width: 100%; }
+  .download-btn:hover { background: #45a049; }
+  .crop-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; justify-content: center; align-items: center; }
+  .crop-container { background: white; padding: 20px; border-radius: 8px; width: 90%; max-width: 500px; max-height: 90vh; overflow: auto; }
+  .crop-area { position: relative; width: 100%; height: 300px; overflow: hidden; margin-bottom: 15px; background: #f0f0f0; display: flex; justify-content: center; align-items: center; }
+  #cropImage { max-width: 100%; max-height: 100%; }
+  .crop-box { position: absolute; top: 50px; left: 50px; width: 200px; height: 200px; border: 2px dashed #fff; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5); cursor: move; }
+  .crop-handle { position: absolute; width: 15px; height: 15px; background: #fff; border: 1px solid #000; }
+  .handle-nw { top: -8px; left: -8px; cursor: nw-resize; }
+  .handle-ne { top: -8px; right: -8px; cursor: ne-resize; }
+  .handle-sw { bottom: -8px; left: -8px; cursor: sw-resize; }
+  .handle-se { bottom: -8px; right: -8px; cursor: se-resize; }
+  .crop-controls { display: flex; justify-content: center; gap: 10px; margin-top: 15px; }
+  .crop-controls button { padding: 8px 15px; cursor: pointer; background: green; color: white; border: none; border-radius: 4px; }
+  .crop-controls button.cancel { background: #ccc; color: #333; }
+  .crop-instructions { margin-top: 10px; font-size: 14px; color: #666; text-align: center; }
+  .quality-control { margin: 15px 0; display: flex; align-items: center; }
+  .quality-control label { flex: 1; text-align: left; }
+  .quality-control input { width: 60%; }
+  .font-controls { margin: 15px 0; display: flex; justify-content: space-between; }
+  .font-controls button { padding: 8px; background: green; color: white; border: none; border-radius: 4px; cursor: pointer; }
+  @media (max-width: 900px) {
+    .container { flex-direction: column; align-items: center; }
+    .controls { width: 100%; max-width: 500px; }
+  }
+  @media (max-width: 480px) {
+    .poster { max-width: 350px; }
+    .image-container { height: 200px; }
+    .headline { font-size: 20px; }
+    .icon-buttons { gap: 5px; }
+    .icon-btn { width: 40px; height: 40px; }
+  }
+</style>
+</head>
+<body>
+<h2>Enhanced News Poster Editor</h2>
+
+<div class="container">
+  <div class="controls">
+    <input type="file" id="imageInput" accept="image/*">
+    <textarea id="headlineInput" placeholder="Enter Headline (Drag text on poster)"></textarea>
+    <input type="text" id="creditInput" placeholder="Enter Credits">
+    
+    <div class="font-controls">
+      <button id="fontIncrease" title="Increase Font Size"><i class="fas fa-text-height"></i> +</button>
+      <button id="fontDecrease" title="Decrease Font Size"><i class="fas fa-text-height"></i> -</button>
+    </div>
+    
+    <div class="icon-buttons">
+      <button class="icon-btn" id="zoomIn" title="Zoom In"><i class="fas fa-search-plus"></i></button>
+      <button class="icon-btn" id="zoomOut" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
+      <button class="icon-btn" id="resetImage" title="Reset Image"><i class="fas fa-sync"></i></button>
+      <button class="icon-btn" id="cropImageBtn" title="Crop Image"><i class="fas fa-crop"></i></button>
+      <button class="icon-btn" id="expandContent" title="Expand Area"><i class="fas fa-arrows-alt-v"></i></button>
+      <button class="icon-btn" id="shrinkContent" title="Shrink Area"><i class="fas fa-compress-alt"></i></button>
+    </div>
+    
+    <div class="quality-control">
+      <label for="qualitySlider">HD Quality:</label>
+      <input type="range" id="qualitySlider" min="0.5" max="1" step="0.1" value="1">
+    </div>
+    
+    <button id="downloadBtn" class="download-btn"><i class="fas fa-download"></i> Download HD Poster</button>
+  </div>
+
+  <div class="poster" id="poster">
+    <div class="image-container" id="imageContainer">
+      <img id="uploadedImage" class="uploaded" src="https://via.placeholder.com/500x280" alt="Uploaded Image">
+    </div>
+
+    <div class="separator-container">
+      <div class="separator">
+        <div class="logo-circle">
+          <img src="/dinlogo.png" alt="Logo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0iIzIyOCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjMGY3Ii8+PHRleHQgeD0iMzIiIHk9IjM4IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZmYiPkxPR088L3RleHQ+PC9zdmc+'">
+        </div>
+      </div>
+    </div>
+
+    <div class="content-area" id="contentArea">
+      <div class="headline" id="headline">
+        Your Headline Here
+        <div class="headline-resize-handle"></div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div id="date">Date: </div>
+      <div id="credit">Credits: Your Name</div>
+    </div>
+  </div>
+</div>
+
+<div class="crop-modal" id="cropModal">
+  <div class="crop-container">
+    <h3>Crop Image</h3>
+    <div class="crop-area" id="cropArea">
+      <img id="cropImage" src="" alt="Image to crop">
+      <div class="crop-box" id="cropBox">
+        <div class="crop-handle handle-nw"></div>
+        <div class="crop-handle handle-ne"></div>
+        <div class="crop-handle handle-sw"></div>
+        <div class="crop-handle handle-se"></div>
+      </div>
+    </div>
+    <div class="crop-instructions">Drag the box to move, drag handles to resize</div>
+    <div class="crop-controls">
+      <button id="applyCrop">Apply Crop</button>
+      <button id="cancelCrop" class="cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+// Auto date
+document.getElementById("date").textContent = "Date: " + new Date().toLocaleDateString();
+
+// Elements
+const uploadedImage = document.getElementById('uploadedImage');
+const headlineElement = document.getElementById('headline');
+const contentArea = document.getElementById('contentArea');
+const cropModal = document.getElementById('cropModal');
+const cropImgElement = document.getElementById('cropImage');
+const cropBox = document.getElementById('cropBox');
+const resizeHandle = document.querySelector('.headline-resize-handle');
+
+// Variables
+let scale = 1, posX = 0, posY = 0;
+let isDraggingImage = false, isDraggingCrop = false, isResizingCrop = false;
+let isDraggingHeadline = false, isResizingHeadline = false;
+let startX, startY, initialPosX, initialPosY;
+let headlineStartX, headlineStartY, headlinePosX = 0, headlinePosY = 0;
+let contentHeight = 120;
+let cropData = { x: 50, y: 50, width: 200, height: 200 };
+let imageAspectRatio = 1, naturalWidth, naturalHeight, resizeDirection = '';
+let fontSize = 24; // Initial font size
+
+// Event Listeners
+document.getElementById("imageInput").addEventListener("change", handleImageUpload);
+document.getElementById("headlineInput").addEventListener("input", () => {
+  headlineElement.textContent = document.getElementById("headlineInput").value;
+});
+document.getElementById("creditInput").addEventListener("input", () => {
+  document.getElementById("credit").textContent = "Credits: " + document.getElementById("creditInput").value;
+});
+document.getElementById('zoomIn').addEventListener('click', () => zoomImage(0.2));
+document.getElementById('zoomOut').addEventListener('click', () => zoomImage(-0.2));
+document.getElementById('resetImage').addEventListener('click', resetImagePosition);
+document.getElementById('expandContent').addEventListener('click', () => resizeContentArea(50));
+document.getElementById('shrinkContent').addEventListener('click', () => resizeContentArea(-50));
+document.getElementById('cropImageBtn').addEventListener('click', openCropModal);
+document.getElementById('applyCrop').addEventListener('click', applyCrop);
+document.getElementById('cancelCrop').addEventListener('click', () => cropModal.style.display = 'none');
+document.getElementById('downloadBtn').addEventListener('click', downloadPoster);
+document.getElementById('fontIncrease').addEventListener('click', () => changeFontSize(2));
+document.getElementById('fontDecrease').addEventListener('click', () => changeFontSize(-2));
+
+// Draggable headline events
+headlineElement.addEventListener('mousedown', (e) => {
+  if (e.target !== resizeHandle) {
+    startDragHeadline(e);
+  }
+});
+document.addEventListener('mousemove', dragHeadline);
+document.addEventListener('mouseup', stopDragHeadline);
+headlineElement.addEventListener('touchstart', (e) => { 
+  if (e.target !== resizeHandle) {
+    e.preventDefault(); 
+    startDragHeadline(e.touches[0]); 
+  }
+});
+document.addEventListener('touchmove', (e) => { if (isDraggingHeadline) dragHeadline(e.touches[0]); });
+document.addEventListener('touchend', stopDragHeadline);
+
+// Headline resize events
+resizeHandle.addEventListener('mousedown', startResizeHeadline);
+document.addEventListener('mousemove', resizeHeadline);
+document.addEventListener('mouseup', stopResizeHeadline);
+resizeHandle.addEventListener('touchstart', (e) => { e.preventDefault(); startResizeHeadline(e.touches[0]); });
+document.addEventListener('touchmove', (e) => { if (isResizingHeadline) resizeHeadline(e.touches[0]); });
+document.addEventListener('touchend', stopResizeHeadline);
+
+// Image panning events
+document.getElementById('imageContainer').addEventListener('mousedown', startImageDrag);
+document.addEventListener('mousemove', dragImage);
+document.addEventListener('mouseup', stopImageDrag);
+document.getElementById('imageContainer').addEventListener('touchstart', (e) => { if (e.touches.length === 1) startImageDrag(e.touches[0]); });
+document.addEventListener('touchmove', (e) => { if (isDraggingImage && e.touches.length === 1) dragImage(e.touches[0]); });
+document.addEventListener('touchend', stopImageDrag);
+document.getElementById('imageContainer').addEventListener('wheel', handleWheelZoom);
+
+// Crop box events
+cropBox.addEventListener('mousedown', startCropAction);
+document.addEventListener('mousemove', handleCropAction);
+document.addEventListener('mouseup', stopCropAction);
+cropBox.addEventListener('touchstart', (e) => { e.preventDefault(); startCropAction(e.touches[0]); });
+document.addEventListener('touchmove', (e) => { if (isDraggingCrop || isResizingCrop) handleCropAction(e.touches[0]); });
+document.addEventListener('touchend', stopCropAction);
+
+// Functions
+function handleImageUpload(event) {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      uploadedImage.src = e.target.result;
+      resetImagePosition();
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function startDragHeadline(e) {
+  isDraggingHeadline = true;
+  headlineStartX = e.clientX;
+  headlineStartY = e.clientY;
+  headlineElement.style.cursor = 'grabbing';
+}
+
+function dragHeadline(e) {
+  if (!isDraggingHeadline) return;
+  
+  const dx = e.clientX - headlineStartX;
+  const dy = e.clientY - headlineStartY;
+  
+  headlinePosX += dx;
+  headlinePosY += dy;
+  
+  // Constrain headline within content area
+  const contentRect = contentArea.getBoundingClientRect();
+  const headlineRect = headlineElement.getBoundingClientRect();
+  
+  const maxX = (contentRect.width - headlineRect.width) / 2;
+  const maxY = (contentRect.height - headlineRect.height) / 2;
+  
+  headlinePosX = Math.max(-maxX, Math.min(headlinePosX, maxX));
+  headlinePosY = Math.max(-maxY, Math.min(headlinePosY, maxY));
+  
+  headlineElement.style.transform = `translate(${headlinePosX}px, ${headlinePosY}px)`;
+  
+  headlineStartX = e.clientX;
+  headlineStartY = e.clientY;
+}
+
+function stopDragHeadline() {
+  isDraggingHeadline = false;
+  headlineElement.style.cursor = 'grab';
+}
+
+function startResizeHeadline(e) {
+  isResizingHeadline = true;
+  headlineStartX = e.clientX;
+  headlineStartY = e.clientY;
+  initialFontSize = fontSize;
+  document.body.style.cursor = 'nwse-resize';
+  e.stopPropagation();
+}
+
+function resizeHeadline(e) {
+  if (!isResizingHeadline) return;
+  
+  const dx = e.clientX - headlineStartX;
+  const dy = e.clientY - headlineStartY;
+  
+  // Calculate new font size based on mouse movement
+  const delta = dx + dy; // Combine both directions for easier resizing
+  const newFontSize = Math.max(12, Math.min(72, initialFontSize + delta / 2));
+  
+  fontSize = newFontSize;
+  headlineElement.style.fontSize = fontSize + 'px';
+  
+  // Update the resize handle position
+  resizeHandle.style.bottom = (-8 - (fontSize/24)*2) + 'px';
+  resizeHandle.style.right = (-8 - (fontSize/24)*2) + 'px';
+}
+
+function stopResizeHeadline() {
+  isResizingHeadline = false;
+  document.body.style.cursor = 'default';
+}
+
+function startImageDrag(e) {
+  isDraggingImage = true;
+  startX = e.clientX;
+  startY = e.clientY;
+  initialPosX = posX;
+  initialPosY = posY;
+  document.getElementById('imageContainer').style.cursor = 'grabbing';
+}
+
+function dragImage(e) {
+  if (!isDraggingImage) return;
+  const dx = e.clientX - startX;
+  const dy = e.clientY - startY;
+  
+  const imgWidth = uploadedImage.naturalWidth * scale;
+  const imgHeight = uploadedImage.naturalHeight * scale;
+  const containerWidth = document.getElementById('imageContainer').offsetWidth;
+  const containerHeight = document.getElementById('imageContainer').offsetHeight;
+  
+  const maxX = Math.max(0, (imgWidth - containerWidth) / 2);
+  const maxY = Math.max(0, (imgHeight - containerHeight) / 2);
+  
+  posX = initialPosX + dx;
+  posY = initialPosY + dy;
+  
+  if (scale > 1) {
+    posX = Math.min(Math.max(posX, -maxX), maxX);
+    posY = Math.min(Math.max(posY, -maxY), maxY);
+  } else {
+    posX = 0;
+    posY = 0;
+  }
+  
+  updateImageTransform();
+}
+
+function stopImageDrag() {
+  isDraggingImage = false;
+  document.getElementById('imageContainer').style.cursor = scale > 1 ? 'grab' : 'default';
+}
+
+function handleWheelZoom(e) {
+  e.preventDefault();
+  const rect = document.getElementById('imageContainer').getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  const mouseY = e.clientY - rect.top;
+  
+  const zoomIntensity = 0.1;
+  const wheel = e.deltaY < 0 ? 1 : -1;
+  const zoom = Math.exp(wheel * zoomIntensity);
+  
+  const newScale = Math.min(Math.max(scale * zoom, 0.5), 5);
+  if (newScale === scale) return;
+  
+  const imageX = (mouseX - rect.width / 2 - posX) / scale;
+  const imageY = (mouseY - rect.height / 2 - posY) / scale;
+  
+  scale = newScale;
+  
+  posX = -(imageX * scale - mouseX + rect.width / 2);
+  posY = -(imageY * scale - mouseY + rect.height / 2);
+  
+  if (scale > 1) {
+    const imgWidth = uploadedImage.naturalWidth * scale;
+    const imgHeight = uploadedImage.naturalHeight * scale;
+    const maxX = Math.max(0, (imgWidth - rect.width) / 2);
+    const maxY = Math.max(0, (imgHeight - rect.height) / 2);
+    
+    posX = Math.min(Math.max(posX, -maxX), maxX);
+    posY = Math.min(Math.max(posY, -maxY), maxY);
+  }
+  
+  updateImageTransform();
+  document.getElementById('imageContainer').style.cursor = 'grab';
+}
+
+function zoomImage(amount) {
+  const rect = document.getElementById('imageContainer').getBoundingClientRect();
+  const mouseX = rect.width / 2;
+  const mouseY = rect.height / 2;
+  
+  const newScale = Math.min(Math.max(scale + amount, 0.5), 5);
+  if (newScale === scale) return;
+  
+  const imageX = (mouseX - rect.width / 2 - posX) / scale;
+  const imageY = (mouseY - rect.height / 2 - posY) / scale;
+  
+  scale = newScale;
+  
+  posX = -(imageX * scale - mouseX + rect.width / 2);
+  posY = -(imageY * scale - mouseY + rect.height / 2);
+  
+  if (scale > 1) {
+    const imgWidth = uploadedImage.naturalWidth * scale;
+    const imgHeight = uploadedImage.naturalHeight * scale;
+    const maxX = Math.max(0, (imgWidth - rect.width) / 2);
+    const maxY = Math.max(0, (imgHeight - rect.height) / 2);
+    
+    posX = Math.min(Math.max(posX, -maxX), maxX);
+    posY = Math.min(Math.max(posY, -maxY), maxY);
+  }
+  
+  updateImageTransform();
+  document.getElementById('imageContainer').style.cursor = scale > 1 ? 'grab' : 'default';
+}
+
+function updateImageTransform() {
+  uploadedImage.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
+}
+
+function resetImagePosition() {
+  scale = 1;
+  posX = 0;
+  posY = 0;
+  updateImageTransform();
+  document.getElementById('imageContainer').style.cursor = 'default';
+}
+
+function resizeContentArea(amount) {
+  if (contentHeight + amount >= 50) {
+    contentHeight += amount;
+    contentArea.style.minHeight = contentHeight + 'px';
+  }
+}
+
+function changeFontSize(amount) {
+  fontSize = Math.max(12, Math.min(72, fontSize + amount));
+  headlineElement.style.fontSize = fontSize + 'px';
+  
+  // Update the resize handle position
+  resizeHandle.style.bottom = (-8 - (fontSize/24)*2) + 'px';
+  resizeHandle.style.right = (-8 - (fontSize/24)*2) + 'px';
+}
+
+function openCropModal() {
+  if (!uploadedImage.src || uploadedImage.src.includes('via.placeholder.com')) {
+    alert('Please upload an image first');
+    return;
+  }
+  
+  cropImgElement.src = uploadedImage.src;
+  cropModal.style.display = 'flex';
+  
+  const img = new Image();
+  img.onload = function() {
+    naturalWidth = img.naturalWidth;
+    naturalHeight = img.naturalHeight;
+    imageAspectRatio = naturalWidth / naturalHeight;
+    
+    const areaWidth = document.getElementById('cropArea').offsetWidth;
+    const areaHeight = document.getElementById('cropArea').offsetHeight;
+    
+    const boxWidth = Math.min(areaWidth * 0.6, areaHeight * 0.6 * imageAspectRatio);
+    const boxHeight = boxWidth / imageAspectRatio;
+    
+    cropData = {
+      x: (areaWidth - boxWidth) / 2,
+      y: (areaHeight - boxHeight) / 2,
+      width: boxWidth,
+      height: boxHeight
+    };
+    
+    updateCropBox();
+  };
+  img.src = uploadedImage.src;
+}
+
+function startCropAction(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  
+  if (e.target.classList.contains('crop-handle')) {
+    isResizingCrop = true;
+    resizeDirection = e.target.classList[1].split('-')[1];
+  } else {
+    isDraggingCrop = true;
+  }
+  
+  startCropX = e.clientX;
+  startCropY = e.clientY;
+}
+
+function handleCropAction(e) {
+  if (!isDraggingCrop && !isResizingCrop) return;
+  
+  const dx = e.clientX - startCropX;
+  const dy = e.clientY - startCropY;
+  
+  if (isDraggingCrop) {
+    cropData.x += dx;
+    cropData.y += dy;
+    
+    const imgX = (document.getElementById('cropArea').offsetWidth - cropImgElement.naturalWidth) / 2;
+    const imgY = (document.getElementById('cropArea').offsetHeight - cropImgElement.naturalHeight) / 2;
+    const imgRight = imgX + cropImgElement.naturalWidth;
+    const imgBottom = imgY + cropImgElement.naturalHeight;
+    
+    cropData.x = Math.max(imgX, Math.min(cropData.x, imgRight - cropData.width));
+    cropData.y = Math.max(imgY, Math.min(cropData.y, imgBottom - cropData.height));
+  } else if (isResizingCrop) {
+    const minSize = 50;
+    
+    if (resizeDirection.includes('e')) cropData.width = Math.max(minSize, cropData.width + dx);
+    if (resizeDirection.includes('w')) {
+      const newWidth = Math.max(minSize, cropData.width - dx);
+      cropData.x += cropData.width - newWidth;
+      cropData.width = newWidth;
+    }
+    if (resizeDirection.includes('s')) cropData.height = Math.max(minSize, cropData.height + dy);
+    if (resizeDirection.includes('n')) {
+      const newHeight = Math.max(minSize, cropData.height - dy);
+      cropData.y += cropData.height - newHeight;
+      cropData.height = newHeight;
+    }
+  }
+  
+  updateCropBox();
+  startCropX = e.clientX;
+  startCropY = e.clientY;
+}
+
+function stopCropAction() {
+  isDraggingCrop = false;
+  isResizingCrop = false;
+}
+
+function updateCropBox() {
+  cropBox.style.left = cropData.x + 'px';
+  cropBox.style.top = cropData.y + 'px';
+  cropBox.style.width = cropData.width + 'px';
+  cropBox.style.height = cropData.height + 'px';
+}
+
+function applyCrop() {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  canvas.width = cropData.width;
+  canvas.height = cropData.height;
+  
+  const img = new Image();
+  img.onload = function() {
+    const displayedWidth = cropImgElement.naturalWidth;
+    const displayedHeight = cropImgElement.naturalHeight;
+    
+    const scaleX = naturalWidth / displayedWidth;
+    const scaleY = naturalHeight / displayedHeight;
+    
+    const imgX = (document.getElementById('cropArea').offsetWidth - displayedWidth) / 2;
+    const imgY = (document.getElementById('cropArea').offsetHeight - displayedHeight) / 2;
+    
+    const cropX = (cropData.x - imgX) * scaleX;
+    const cropY = (cropData.y - imgY) * scaleY;
+    const cropWidth = cropData.width * scaleX;
+    const cropHeight = cropData.height * scaleY;
+    
+    ctx.drawImage(img, cropX, cropY, cropWidth, cropHeight, 0, 0, cropData.width, cropData.height);
+    
+    uploadedImage.src = canvas.toDataURL('image/jpeg');
+    resetImagePosition();
+    cropModal.style.display = 'none';
+  };
+  img.src = uploadedImage.src;
+}
+
+function downloadPoster() {
+  const quality = parseFloat(document.getElementById('qualitySlider').value);
+  
+  // Temporarily reset headline position for clean capture
+  const originalTransform = headlineElement.style.transform;
+  headlineElement.style.transform = '';
+  
+  html2canvas(document.getElementById('poster'), {
+    scale: quality * 3, // HD quality
+    useCORS: true,
+    logging: false,
+    backgroundColor: null
+  }).then(function(canvas) {
+    // Restore headline position
+    headlineElement.style.transform = originalTransform;
+    
+    const link = document.createElement('a');
+    link.href = canvas.toDataURL('image/jpeg', quality);
+    link.download = 'news-poster-hd.jpg';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  });
+}
+
+// Close modal if clicked outside
+window.addEventListener('click', function(e) {
+  if (e.target === cropModal) cropModal.style.display = 'none';
+});
+</script>
+</body>
+</html>
