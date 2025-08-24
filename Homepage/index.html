@@ -17,11 +17,7 @@
     }
 
     *{box-sizing:border-box;margin:0;padding:0;}
-    body{
-      font-family:Poppins, sans-serif;
-      background:var(--bg);
-      color:var(--text);
-    }
+    body{font-family:Poppins, sans-serif;background:var(--bg);color:var(--text);}
 
     /* Appbar */
     .appbar{
@@ -31,11 +27,8 @@
       border:var(--glass-border);box-shadow:var(--shadow);
     }
     .brand{font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px;}
-    .logo{width:32px;height:32px;border-radius:8px;
-      background:linear-gradient(135deg,#7cf1e1,#b490ca);
-      display:flex;align-items:center;justify-content:center;
-    }
-    .logo svg{width:18px;height:18px;stroke:#fff;}
+    .logo{width:32px;height:32px;border-radius:8px;overflow:hidden;flex-shrink:0;}
+    .logo img{width:100%;height:100%;object-fit:cover;}
 
     /* Hero */
     .hero{text-align:center;padding:24px 12px;}
@@ -68,9 +61,11 @@
     /* Footer */
     footer{padding:14px;margin:12px;border-radius:12px;text-align:center;
       background:var(--glass-bg);border:var(--glass-border);color:var(--muted);
-      font-size:13px;
+      font-size:13px;display:flex;flex-direction:column;gap:8px;align-items:center;
     }
-    .links{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:8px;}
+    .footer-brand{display:flex;align-items:center;gap:8px;font-weight:600;}
+    .footer-brand img{width:24px;height:24px;border-radius:6px;}
+    .links{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;}
     .link{color:var(--text);font-size:13px;text-decoration:none;padding:6px 10px;
       border-radius:8px;background:rgba(255,255,255,0.06);
     }
@@ -80,12 +75,7 @@
   <!-- App Bar -->
   <header class="appbar">
     <div class="brand">
-      <div class="logo">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 7h16M4 17h16"/>
-          <rect x="6" y="9" width="12" height="6" rx="2"/>
-        </svg>
-      </div>
+      <div class="logo"><img src="/dinlogo.png" alt="Logo"></div>
       <span>Beautiful Dinajpur</span>
     </div>
   </header>
@@ -119,7 +109,10 @@
 
   <!-- Footer -->
   <footer>
-    <div>© <span id="year"></span> Beautiful Dinajpur</div>
+    <div class="footer-brand">
+      <img src="/dinlogo.png" alt="Logo"> Beautiful Dinajpur
+    </div>
+    <div>© <span id="year"></span> Built with ❤</div>
     <div class="links">
       <a href="#" class="link">Terms</a>
       <a href="#" class="link">Privacy</a>
