@@ -332,7 +332,7 @@ function draw(){
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 29px sans-serif';
+    ctx.font = 'bold 35px sans-serif';
     ctx.shadowColor = 'rgba(0,0,0,.65)';
     ctx.shadowBlur = 4;
     ctx.fillText(currentDate, 30, 30);
@@ -340,17 +340,21 @@ function draw(){
   }
   
   // Draw source (top right)
-  if (sourceText) {
-    ctx.save();
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'top';
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 22px sans-serif';
-    ctx.shadowColor = 'rgba(0,0,0,.65)';
-    ctx.shadowBlur = 4;
-    ctx.fillText('তথ্যসূত্র: ' + sourceText, canvas.width - 30, 30);
-    ctx.restore();
-  }
+if (sourceText) {
+  ctx.save();
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'bottom'; // নিচের দিককে রেফারেন্স ধরা হবে
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 35px sans-serif';
+  ctx.shadowColor = 'rgba(0,0,0,.65)';
+  ctx.shadowBlur = 10;
+
+  // নিচ থেকে 60px উপরে টেক্সট বসবে
+  ctx.fillText('তথ্যসূত্র: ' + sourceText, canvas.width - 30, canvas.height - 110);
+
+  ctx.restore();
+}
+
 
   // Texts
   const framePadding = 40;           // left+right safety padding (world units)
