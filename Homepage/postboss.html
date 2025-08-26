@@ -74,6 +74,10 @@
     padding:6px 12px; border-radius:999px; font-size:13px;
     pointer-events:none; display:none; z-index:4;
   }
+  /* Source input */
+  #sourceInput {
+    margin-top: 10px;
+  }
 </style>
 </head>
 <body>
@@ -94,6 +98,7 @@
     <div id="controls">
       <input type="file" id="uploader" accept="image/*" />
       <input type="text" id="textInput" placeholder="টেক্সট লিখুন (headline / caption)" />
+      <input type="text" id="sourceInput" placeholder="তথ্যসূত্র লিখুন (উৎস)" />
       <div style="display:flex; gap:10px">
         <input type="color" id="colorInput" value="#ffffff" style="flex:1" />
         <select id="fontSelect" style="flex:2">
@@ -123,6 +128,7 @@ const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
 const uploader   = document.getElementById('uploader');
 const textInput  = document.getElementById('textInput');
+const sourceInput = document.getElementById('sourceInput');
 const colorInput = document.getElementById('colorInput');
 const fontSelect = document.getElementById('fontSelect');
 const addTextBtn = document.getElementById('addText');
@@ -149,6 +155,10 @@ let imgX = 0, imgY = 0, imgScale = 1;
 let texts = [];   // { text, x, y, scale, rotation, color, font }
 let selected = null;
 
+/* Date and source info */
+let currentDate = '';
+let sourceText = '';
+
 /* Interaction state */
 let draggingImg = false, dragStartClient = {x:0,y:0};
 let draggingText = false, dragTextStart = {x:0,y:0};
@@ -173,6 +183,28 @@ function deviceToCanvas(px, py){
 }
 function getTouchCanvasPos(t){ return deviceToCanvas(t.clientX, t.clientY); }
 
+/* ========= Bengali Date Functions ========= */
+function getBengaliDate() {
+  const now = new Date();
+  const day = now.getDate();
+  const month = now.getMonth();
+  const year = now.getFullYear();
+  
+  // Bengali month names
+  const bengaliMonths = [
+    'জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন',
+    'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'
+  ];
+  
+  // Convert numbers to Bengali digits
+  function toBengaliDigits(number) {
+    const bengaliDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+    return number.toString().replace(/\d/g, digit => bengaliDigits[parseInt(digit)]);
+  }
+  
+  return `${toBengaliDigits(day)} ${bengaliMonths[month]} ${toBengaliDigits(year)}`;
+}
+
 /* ========= Init Canvas ========= */
 frame.onload = () => {
   // Use frame native size for crisp export
@@ -181,6 +213,15 @@ frame.onload = () => {
 
   imgX = canvas.width/2;
   imgY = canvas.height/2;
+  
+  // Set current date in Bengali
+  currentDate = getBengaliDate();
+  
+  // Set up source input listener
+  sourceInput.addEventListener('input', () => {
+    sourceText = sourceInput.value;
+    draw();
+  });
 
   draw();
 };
@@ -284,6 +325,32 @@ function draw(){
 
   // Frame overlay
   ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
+  
+  // Draw date (top left)
+  if (currentDate) {
+    ctx.save();
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 29px sans-serif';
+    ctx.shadowColor = 'rgba(0,0,0,.65)';
+    ctx.shadowBlur = 4;
+    ctx.fillText(currentDate, 30, 30);
+    ctx.restore();
+  }
+  
+  // Draw source (top right)
+  if (sourceText) {
+    ctx.save();
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 22px sans-serif';
+    ctx.shadowColor = 'rgba(0,0,0,.65)';
+    ctx.shadowBlur = 4;
+    ctx.fillText('তথ্যসূত্র: ' + sourceText, canvas.width - 30, 30);
+    ctx.restore();
+  }
 
   // Texts
   const framePadding = 40;           // left+right safety padding (world units)
