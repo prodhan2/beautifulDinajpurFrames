@@ -105,6 +105,15 @@
         <button class="btn btn-ghost" id="btnLearn2">Learn more</button>
       </div>
     </article>
+
+     <article class="card">
+      <h3>Create Poster 2 Pro <span class="badge">PRO</span></h3>
+      <p>Make attention-grabbing posters with templates. Edit text → Export for social or print.</p>
+      <div class="actions">
+        <button class="btn" id="Poster">Create Poster</button>
+        <button class="btn btn-ghost" id="btnLearn2">Learn more</button>
+      </div>
+    </article>
   </main>
 
   <!-- Footer -->
@@ -124,6 +133,7 @@
     document.getElementById('year').textContent = new Date().getFullYear();
     document.getElementById('btnWatermark').onclick = () => location.href = "watermark.html";
     document.getElementById('btnPoster').onclick = () => location.href = "post.html";
+        document.getElementById('Poster').onclick = () => location.href = "postboss.html";
     document.getElementById('btnLearn1').onclick = () => alert("Learn: Upload → Position → Opacity → Export");
     document.getElementById('btnLearn2').onclick = () => alert("Learn: Template → Edit text → Export");
   </script>

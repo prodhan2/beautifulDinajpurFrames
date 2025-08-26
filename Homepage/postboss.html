@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>BeautifulDinajpur Poster Builder</title>
+<style>
+  :root{
+    --bg:#111418; --panel:#1b2030; --panel-2:#23293a; --text:#e9eef5;
+    --accent:#6ea8fe; --muted:#a9b2c7;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:0; background:var(--bg); color:var(--text);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    display:flex; flex-direction:column; align-items:center;
+  }
+  h2{font-weight:700; letter-spacing:.3px; margin:14px 12px 6px}
+  #app{
+    width:min(100vw,640px);
+    display:flex; flex-direction:column; gap:10px; padding:8px;
+  }
+  /* Canvas area */
+  #canvas-wrap{
+    position:relative; border-radius:16px; overflow:hidden;
+    background:#000; box-shadow:0 8px 24px rgba(0,0,0,.35);
+    touch-action:none;
+  }
+  canvas{ width:100%; height:auto; display:block; }
+  /* Floating text action icons (edit/delete) */
+  #textIcons{
+    position:absolute; display:none; gap:6px; z-index:5;
+    transform:translate(-50%,-100%);
+  }
+  #textIcons button{
+    border:none; outline:none; border-radius:12px;
+    padding:8px 10px; font-size:16px; line-height:1;
+    background:var(--panel-2); color:var(--text);
+    box-shadow:0 4px 14px rgba(0,0,0,.35);
+  }
+  #textIcons button:active{ transform:scale(.98); }
+  /* Top controls */
+  #controls{
+    background:var(--panel); border-radius:14px; padding:10px;
+    display:grid; grid-template-columns:1fr 1fr auto; gap:10px;
+  }
+  #controls input[type="text"]{ grid-column:1/-1; }
+  #controls input[type="file"],
+  #controls input[type="text"],
+  #controls select,
+  #controls button{
+    width:100%; border:none; outline:none; border-radius:12px;
+    padding:12px 14px; font-size:16px; background:var(--panel-2); color:var(--text);
+  }
+  #controls button.primary{ background:var(--accent); color:#0b1020; font-weight:700; }
+  /* Bottom controls */
+  #bottom-controls{
+    display:flex; gap:10px; align-items:center; justify-content:space-between;
+    background:var(--panel); border-radius:14px; padding:10px;
+  }
+  #bottom-controls .group{ display:flex; gap:8px; }
+  .btn{
+    border:none; outline:none; border-radius:12px;
+    padding:12px 14px; font-size:18px; background:var(--panel-2); color:var(--text);
+    min-width:48px; text-align:center;
+  }
+  .btn.primary{ background:var(--accent); color:#0b1020; font-weight:700; }
+  #zoomPercent{ color:var(--muted); font-weight:600; }
+  /* Selected badge (optional hint) */
+  #selectedBadge{
+    position:absolute; left:50%; top:8px; transform:translateX(-50%);
+    background:rgba(110,168,254,.18); color:#cfe0ff;
+    padding:6px 12px; border-radius:999px; font-size:13px;
+    pointer-events:none; display:none; z-index:4;
+  }
+</style>
+</head>
+<body>
+  <h2>BeautifulDinajpur Poster Builder</h2>
+
+  <div id="app">
+    <!-- Canvas Area -->
+    <div id="canvas-wrap">
+      <canvas id="poster"></canvas>
+      <div id="selectedBadge">Text Selected</div>
+      <div id="textIcons">
+        <button id="editBtn" title="Edit text">✏️</button>
+        <button id="delBtn" title="Delete text">🗑️</button>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div id="controls">
+      <input type="file" id="uploader" accept="image/*" />
+      <input type="text" id="textInput" placeholder="টেক্সট লিখুন (headline / caption)" />
+      <div style="display:flex; gap:10px">
+        <input type="color" id="colorInput" value="#ffffff" style="flex:1" />
+        <select id="fontSelect" style="flex:2">
+          <option value="sans-serif">Sans-serif</option>
+          <option value="serif">Serif</option>
+          <option value="monospace">Monospace</option>
+        </select>
+      </div>
+      <button id="addText" class="primary">+ Add Text</button>
+    </div>
+
+    <!-- Bottom bar -->
+    <div id="bottom-controls">
+      <div class="group">
+        <button id="zoomOut" class="btn">–</button>
+        <button id="zoomIn" class="btn">+</button>
+      </div>
+      <div id="zoomPercent">Image Zoom: 100%</div>
+      <button id="download" class="btn primary">Download</button>
+    </div>
+  </div>
+
+<script>
+/* ========= State ========= */
+const canvas = document.getElementById('poster');
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+const uploader   = document.getElementById('uploader');
+const textInput  = document.getElementById('textInput');
+const colorInput = document.getElementById('colorInput');
+const fontSelect = document.getElementById('fontSelect');
+const addTextBtn = document.getElementById('addText');
+
+const zoomInBtn  = document.getElementById('zoomIn');
+const zoomOutBtn = document.getElementById('zoomOut');
+const zoomLabel  = document.getElementById('zoomPercent');
+const downloadBtn= document.getElementById('download');
+
+const textIcons  = document.getElementById('textIcons');
+const editBtn    = document.getElementById('editBtn');
+const delBtn     = document.getElementById('delBtn');
+const selectedBadge = document.getElementById('selectedBadge');
+
+/* Frame overlay (Facebook style) */
+const frame = new Image();
+frame.src = 'post.png'; // keep your frame file here
+
+/* User image state */
+let userImg = null;
+let imgX = 0, imgY = 0, imgScale = 1;
+
+/* Text blocks */
+let texts = [];   // { text, x, y, scale, rotation, color, font }
+let selected = null;
+
+/* Interaction state */
+let draggingImg = false, dragStartClient = {x:0,y:0};
+let draggingText = false, dragTextStart = {x:0,y:0};
+
+/* Pinch state */
+let pinchTarget = ''; // 'image' | 'text'
+let pinchStartDist = 0, pinchStartScale = 1;
+let pinchCenter = {x:0,y:0};
+let imgOffsetFromCenter = {x:0,y:0};
+
+let textPinchStartDist = 0, textPinchStartScale = 1;
+
+/* ========= Helpers ========= */
+function clamp(v, min, max){ return Math.min(Math.max(v, min), max); }
+
+function deviceToCanvas(px, py){
+  const r = canvas.getBoundingClientRect();
+  return {
+    x: (px - r.left) * (canvas.width / r.width),
+    y: (py - r.top)  * (canvas.height / r.height)
+  };
+}
+function getTouchCanvasPos(t){ return deviceToCanvas(t.clientX, t.clientY); }
+
+/* ========= Init Canvas ========= */
+frame.onload = () => {
+  // Use frame native size for crisp export
+  canvas.width  = frame.width;
+  canvas.height = frame.height;
+
+  imgX = canvas.width/2;
+  imgY = canvas.height/2;
+
+  draw();
+};
+
+/* ========= Image Upload ========= */
+uploader.addEventListener('change', (e) => {
+  const file = e.target.files?.[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => {
+      userImg = img;
+      imgScale = Math.max(canvas.width / img.width, canvas.height / img.height); // cover
+      imgX = canvas.width/2;
+      imgY = canvas.height/2;
+      updateZoomLabel();
+      draw();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+/* ========= Add Text ========= */
+addTextBtn.addEventListener('click', () => {
+  const val = textInput.value.trim();
+  if(!val) return;
+  texts.push({
+    text: val,
+    x: canvas.width/2,
+    y: canvas.height/2,
+    scale: 1,
+    rotation: 0,
+    color: colorInput.value,
+    font: fontSelect.value
+  });
+  textInput.value = '';
+  draw();
+});
+
+/* ========= Text wrapping that respects scale (keeps inside frame) ========= */
+function wrapTextScaled(ctx, text, x, y, maxWidthWorld, lineHeightWorld, scale){
+  // inside a scaled context; usable local width = maxWidthWorld / scale
+  const maxLocal = maxWidthWorld / scale;
+  const lhLocal  = lineHeightWorld / scale;
+
+  // Use baseline top for predictable stacking
+  const oldBaseline = ctx.textBaseline;
+  ctx.textBaseline = 'top';
+
+  // Split by space; fallback to char-splitting for oversized words
+  const words = text.split(' ');
+  let line = '';
+  let cursorY = y;
+
+  function drawLine(str){
+    ctx.fillText(str, x, cursorY);
+    cursorY += lineHeightWorld; // move in world units (since context scaled)
+  }
+
+  for(let i=0;i<words.length;i++){
+    const test = line + words[i] + ' ';
+    if(ctx.measureText(test).width > maxLocal && i > 0){
+      // current word doesn't fit on this line
+      if(line.trim().length){
+        drawLine(line);
+        line = words[i] + ' ';
+      }else{
+        // very long single "word" -> break by chars
+        let piece = '';
+        for(const ch of words[i] + ' '){
+          if(ctx.measureText(piece + ch).width > maxLocal){
+            drawLine(piece);
+            piece = ch;
+          }else{
+            piece += ch;
+          }
+        }
+        line = '';
+      }
+    }else{
+      line = test;
+    }
+  }
+  if(line.trim().length) drawLine(line);
+
+  ctx.textBaseline = oldBaseline;
+}
+
+/* ========= Drawing ========= */
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // User photo
+  if(userImg){
+    const w = userImg.width * imgScale;
+    const h = userImg.height * imgScale;
+    ctx.drawImage(userImg, imgX - w/2, imgY - h/2, w, h);
+  }
+
+  // Frame overlay
+  ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
+
+  // Texts
+  const framePadding = 40;           // left+right safety padding (world units)
+  const usableWidth  = canvas.width - framePadding * 2;
+  const baseFontPx   = 34;           // base font size (world units)
+  const baseLineH    = 40;           // base line height (world units)
+
+  texts.forEach(tb => {
+    ctx.save();
+    ctx.translate(tb.x, tb.y);
+    ctx.rotate(tb.rotation);
+    ctx.scale(tb.scale, tb.scale);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = tb.color;
+    ctx.shadowColor = 'rgba(0,0,0,.65)';
+    ctx.shadowBlur = 8;
+    ctx.font = `700 ${baseFontPx}px ${tb.font}`;
+
+    // NOTE: since the context is scaled, give world maxWidth (usableWidth)
+    wrapTextScaled(ctx, tb.text, 0, 0, usableWidth, baseLineH, tb.scale);
+    ctx.restore();
+  });
+
+  // Selected hint + icons
+  if(selected){
+    selectedBadge.style.display = 'block';
+    textIcons.style.display = 'flex';
+    const rect = canvas.getBoundingClientRect();
+    const left = selected.x * rect.width / canvas.width;
+    const top  = selected.y * rect.height / canvas.height;
+    textIcons.style.left = left + 'px';
+    textIcons.style.top  = top + 'px';
+  }else{
+    selectedBadge.style.display = 'none';
+    textIcons.style.display = 'none';
+  }
+}
+
+/* ========= Selection hit test (approx bounding box) ========= */
+function textHit(tb, p){
+  // Approx bbox without rotation (simple + fast)
+  ctx.save();
+  ctx.font = `700 34px ${tb.font}`;
+  const width = ctx.measureText(tb.text).width * tb.scale;
+  ctx.restore();
+  const halfH = 36 * tb.scale;
+  return (p.x > tb.x - width/2 && p.x < tb.x + width/2 &&
+          p.y > tb.y - halfH && p.y < tb.y + halfH);
+}
+
+/* ========= Pointer (mouse/pen) drag ========= */
+canvas.addEventListener('pointerdown', (e) => {
+  const p = deviceToCanvas(e.clientX, e.clientY);
+  selected = null;
+
+  // Hit test from topmost
+  for(let i = texts.length-1; i>=0; i--){
+    if(textHit(texts[i], p)){
+      selected = texts[i];
+      draggingText = true;
+      dragTextStart = p;
+      draw();
+      return;
+    }
+  }
+  // Else image drag
+  draggingImg = true;
+  dragStartClient = { x: e.clientX, y: e.clientY };
+});
+
+canvas.addEventListener('pointermove', (e) => {
+  if(draggingImg){
+    const rect = canvas.getBoundingClientRect();
+    const dx = (e.clientX - dragStartClient.x) * (canvas.width  / rect.width);
+    const dy = (e.clientY - dragStartClient.y) * (canvas.height / rect.height);
+    imgX += dx; imgY += dy;
+    dragStartClient = { x: e.clientX, y: e.clientY };
+    draw();
+  } else if(draggingText && selected){
+    const p = deviceToCanvas(e.clientX, e.clientY);
+    selected.x += (p.x - dragTextStart.x);
+    selected.y += (p.y - dragTextStart.y);
+    dragTextStart = p;
+    draw();
+  }
+});
+
+['pointerup','pointerleave','pointercancel'].forEach(ev=>{
+  canvas.addEventListener(ev, () => { draggingImg=false; draggingText=false; });
+});
+
+/* ========= Touch: pinch-to-zoom (image or selected text) ========= */
+canvas.addEventListener('touchstart', (e) => {
+  if(e.touches.length === 1){ return; }
+  if(e.touches.length === 2){
+    e.preventDefault();
+    const p1 = getTouchCanvasPos(e.touches[0]);
+    const p2 = getTouchCanvasPos(e.touches[1]);
+    const cx = (p1.x + p2.x)/2, cy = (p1.y + p2.y)/2;
+
+    // Decide target based on pinch center
+    pinchTarget = 'image';
+    // try hit text
+    for(let i=texts.length-1;i>=0;i--){
+      if(textHit(texts[i], {x:cx, y:cy})){
+        pinchTarget = 'text';
+        selected = texts[i];
+        break;
+      }
+    }
+    pinchStartDist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+    if(pinchTarget === 'text'){
+      textPinchStartScale = selected.scale;
+      textPinchStartDist  = pinchStartDist;
+    }else{
+      pinchStartScale = imgScale;
+      pinchCenter = {x:cx, y:cy};
+      imgOffsetFromCenter = { x: imgX - cx, y: imgY - cy };
+    }
+    draw();
+  }
+}, {passive:false});
+
+canvas.addEventListener('touchmove', (e) => {
+  if(e.touches.length !== 2) return;
+  e.preventDefault();
+  const p1 = getTouchCanvasPos(e.touches[0]);
+  const p2 = getTouchCanvasPos(e.touches[1]);
+  const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+
+  if(pinchTarget === 'text' && selected){
+    const factor = dist / textPinchStartDist;
+    selected.scale = clamp(textPinchStartScale * factor, 0.1, 8);
+    draw();
+  }else{
+    const factor = dist / pinchStartDist;
+    imgScale = clamp(pinchStartScale * factor, 0.1, 8);
+    imgX = pinchCenter.x + imgOffsetFromCenter.x * factor;
+    imgY = pinchCenter.y + imgOffsetFromCenter.y * factor;
+    updateZoomLabel();
+    draw();
+  }
+}, {passive:false});
+
+/* ========= Zoom buttons ========= */
+zoomInBtn.addEventListener('click', () => {
+  if(selected){ selected.scale = clamp(selected.scale * 1.1, 0.1, 8); }
+  else        { imgScale       = clamp(imgScale * 1.1,       0.1, 8); }
+  updateZoomLabel(); draw();
+});
+
+zoomOutBtn.addEventListener('click', () => {
+  if(selected){ selected.scale = clamp(selected.scale / 1.1, 0.1, 8); }
+  else        { imgScale       = clamp(imgScale / 1.1,       0.1, 8); }
+  updateZoomLabel(); draw();
+});
+
+function updateZoomLabel(){
+  zoomLabel.textContent = `Image Zoom: ${Math.round(imgScale*100)}%`;
+}
+
+/* ========= Edit/Delete icons ========= */
+editBtn.addEventListener('click', () => {
+  if(!selected) return;
+  const t = prompt('Edit text:', selected.text);
+  if(t !== null){
+    selected.text = t; // <-- নিশ্চিত টেক্সট এডিট
+    draw();
+  }
+});
+delBtn.addEventListener('click', () => {
+  if(!selected) return;
+  texts = texts.filter(tb => tb !== selected);
+  selected = null;
+  draw();
+});
+
+/* ========= Download ========= */
+downloadBtn.addEventListener('click', () => {
+  const a = document.createElement('a');
+  a.download = 'poster.png';
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+});
+</script>
+</body>
+</html>
