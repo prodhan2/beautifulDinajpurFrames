@@ -93,5 +93,3 @@ git commit -m "Initial commit: README and folder structure"
 * কয়েকটি Dinajpur-স্পেশাল পোস্ট কালেকশন (স্থান: Kantanagar, Dinajpur Museum, Punarbhaba নদী ইত্যাদি) এবং সাইজ-অপ্টিমাইজড টেমপ্লেট।
 
 ---
-
-**শুরু করতে বলুন:** আমি এই রিপোজিটরির `README.md` ফাইলটি তৈরি করে দিলাম — আপনি চাইলে আমি একই স্টাইলের `CONTRIBUTING.md`, `LICENSE`, বা `web/preview.html` ও তৈরি করে দিতে পারি।
