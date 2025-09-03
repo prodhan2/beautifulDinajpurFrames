@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Video Frame Watermarker (Overlay post.png)</title>
+  <style>
+    :root { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; }
+    body{margin:0;background:#0b1220;color:#e8ecf1}
+    .wrap{max-width:960px;margin:0 auto;padding:24px}
+    .card{background:#111a2b;border:1px solid #1e2a44;border-radius:16px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    .row{display:grid;gap:14px}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    label{font-weight:600;margin-bottom:6px;display:block}
+    input[type="file"],button,select{width:100%;padding:10px 12px;border-radius:12px;border:1px solid #2b3a5c;background:#0f1a2b;color:#e8ecf1}
+    button{cursor:pointer;font-weight:700}
+    button.primary{background:#2563eb;border-color:#2563eb}
+    button[disabled]{opacity:.5;cursor:not-allowed}
+    .hint{opacity:.85;font-size:.95rem}
+    .log{white-space:pre-wrap;background:#0a1222;border-radius:12px;padding:12px;border:1px solid #1e2a44;max-height:200px;overflow:auto}
+    video, img{width:100%;border-radius:12px;border:1px solid #1e2a44;background:#000}
+    .footer{opacity:.75;font-size:.9rem;margin-top:10px}
+    .badge{display:inline-block;padding:2px 8px;border:1px solid #2b3a5c;border-radius:999px;font-size:.8rem}
+  </style>
+  <!-- ffmpeg.wasm -->
+  <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js"></script>
+  <script>
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    let ffmpeg;
+    let origUrl;
+    async function ensureFFmpeg(logEl){
+      if(ffmpeg) return ffmpeg;
+      ffmpeg = createFFmpeg({
+        log: true,
+        corePath: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js'
+      });
+      logEl.textContent += '\nLoading FFmpeg core...';
+      await ffmpeg.load();
+      logEl.textContent += '\nFFmpeg loaded.';
+      return ffmpeg;
+    }
+
+    async function runOverlay(){
+      const logEl = document.getElementById('log');
+      const outLink = document.getElementById('outLink');
+      const outVideo = document.getElementById('outVideo');
+      const btn = document.getElementById('runBtn');
+      const copyAudio = document.getElementById('copyAudio').checked;
+      const crf = document.getElementById('crf').value;
+      const preset = document.getElementById('preset').value;
+      const stretch = document.getElementById('stretch').checked;
+      const origLink = document.getElementById('origLink');
+
+      outLink.removeAttribute('href');
+      outLink.textContent = '';
+      outVideo.removeAttribute('src');
+      origLink.removeAttribute('href');
+      origLink.textContent = '';
+      logEl.textContent = 'Preparing...';
+      btn.disabled = true;
+
+      try{
+        await ensureFFmpeg(logEl);
+
+        const vFile = document.getElementById('video').files?.[0];
+
+        if(!vFile){
+          alert('দয়া করে একটি ভিডিও ফাইল নির্বাচন করুন');
+          btn.disabled = false; return;
+        }
+
+        // Save original file link
+        origUrl = URL.createObjectURL(vFile);
+        origLink.href = origUrl;
+        origLink.download = vFile.name;
+        origLink.textContent = 'Download original video';
+
+        // Always use post.png from same folder (frame)
+        let frameBytes;
+        try{
+          const res = await fetch('post.png');
+          if(!res.ok) throw new Error('not found');
+          const buf = await res.arrayBuffer();
+          frameBytes = new Uint8Array(buf);
+        }catch(e){
+          alert('post.png পাওয়া যায়নি। দয়া করে post.png ফাইলটি একই ফোল্ডারে রাখুন।');
+          btn.disabled = false; return;
+        }
+
+        const vName = 'input.' + (vFile.name.split('.').pop() || 'mp4');
+        const fName = 'frame.png';
+        const outName = 'watermarked.mp4';
+
+        ffmpeg.FS('writeFile', vName, await fetchFile(vFile));
+        ffmpeg.FS('writeFile', fName, frameBytes);
+
+        // Build filter with post.png
+        let filter;
+        if(stretch){
+          filter = `[1:v][0:v]scale2ref=w=iw:h=ih[ov][vid];[vid][ov]overlay=0:0:format=auto`;
+        } else {
+          filter = `[0:v][1:v]overlay=0:0:format=auto`;
+        }
+
+        const args = [
+          '-i', vName,
+          '-i', fName,
+          '-filter_complex', filter,
+          '-shortest'
+        ];
+
+        if(copyAudio){
+          args.push('-c:a','copy');
+        }
+
+        // Video encode settings
+        args.push('-c:v','libx264','-pix_fmt','yuv420p','-crf', String(crf), '-preset', preset);
+        args.push(outName);
+
+        logEl.textContent += '\nRunning FFmpeg...';
+        await ffmpeg.run(...args);
+        logEl.textContent += '\nDone.';
+
+        const data = ffmpeg.FS('readFile', outName);
+        const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+        outVideo.src = url;
+        outLink.href = url;
+        outLink.download = outName;
+        outLink.textContent = 'Download watermarked.mp4';
+      }catch(err){
+        console.error(err);
+        logEl.textContent += `\nError: ${err.message || err}`;
+        alert('প্রসেসিং এ সমস্যা হয়েছে। Console এ error দেখুন।');
+      }finally{
+        btn.disabled = false;
+      }
+    }
+  </script>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🎬 Video Frame Watermarker <span class="badge">client‑side</span></h1>
+    <p class="hint">এই টুলটি আপনার ভিডিওর উপর post.png ফ্রেম/ওয়াটারমার্ক বসিয়ে নতুন ভিডিও তৈরি করবে। post.png অবশ্যই একই ফোল্ডারে থাকতে হবে।</p>
+
+    <div class="card row" style="margin-top:14px">
+      <div class="grid-2">
+        <div>
+          <label>ভিডিও নির্বাচন করুন</label>
+          <input id="video" type="file" accept="video/*" />
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <label>CRF (গুণগত মান/সাইজ)</label>
+          <select id="crf">
+            <option value="22">22 (ভালো)</option>
+            <option value="18">18 (উচ্চ)</option>
+            <option value="23" selected>23 (ডিফল্ট)</option>
+            <option value="28">28 (ছোট ফাইল)</option>
+          </select>
+        </div>
+        <div>
+          <label>Preset (গতি)</label>
+          <select id="preset">
+            <option>ultrafast</option>
+            <option>superfast</option>
+            <option>veryfast</option>
+            <option selected>faster</option>
+            <option>fast</option>
+            <option>medium</option>
+            <option>slow</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <label><input id="stretch" type="checkbox" /> ফ্রেমটিকে ভিডিওর সাইজে স্ট্রেচ করুন (ম্যাচ না করলে)</label>
+        <label><input id="copyAudio" type="checkbox" checked /> অডিও কপি করুন</label>
+      </div>
+
+      <button id="runBtn" class="primary" onclick="runOverlay()">▶️ Watermark Apply করুন</button>
+
+      <div class="grid-2" style="margin-top:12px">
+        <div>
+          <label>আউটপুট প্রিভিউ</label>
+          <video id="outVideo" controls></video>
+          <p><a id="outLink" href="#"></a></p>
+          <p><a id="origLink" href="#"></a></p>
+        </div>
+        <div>
+          <label>লগ</label>
+          <div id="log" class="log">Ready.</div>
+          <p class="footer">নোট: post.png অবশ্যই ট্রান্সপারেন্ট PNG ফ্রেম হওয়া উচিত এবং সম্ভব হলে ভিডিওর সমান রেজোলিউশন রাখুন।</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
