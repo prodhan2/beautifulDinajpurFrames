@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Watermark App - Top Left Default</title>
+    <title>Watermark App - Fixed Positioning</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -604,7 +604,7 @@
             opacityValue.textContent = `${opacitySlider.value}%`;
             rotationValue.textContent = `${rotationSlider.value}°`;
             
-            // Function to generate watermarked image
+            // Function to generate watermarked image - FIXED
             function generateWatermarkedImage(imgData, callback) {
                 const canvas = document.createElement('canvas');
                 const currentImage = imgData.image;
@@ -615,22 +615,24 @@
                 // Draw original image
                 ctx.drawImage(currentImage, 0, 0, currentImage.width, currentImage.height);
                 
-                // Calculate watermark position and size
+                // Get the preview container dimensions
                 const containerRect = previewContainer.getBoundingClientRect();
-                const overlayRect = {
-                    width: imgData.watermarkSettings.width * containerRect.width,
-                    height: (imgData.watermarkSettings.width * containerRect.width * watermarkImg.height) / watermarkImg.width
-                };
                 
-                const watermarkWidth = (overlayRect.width / containerRect.width) * currentImage.width;
+                // Calculate the scaling factor between the preview and original image
+                const scaleX = currentImage.width / containerRect.width;
+                const scaleY = currentImage.height / containerRect.height;
+                
+                // Calculate watermark position and size based on original image dimensions
+                const watermarkWidth = imgData.watermarkSettings.width * currentImage.width;
                 const watermarkHeight = (watermarkWidth * watermarkImg.height) / watermarkImg.width;
                 
-                const watermarkX = (imgData.watermarkSettings.left / containerRect.width) * currentImage.width;
-                const watermarkY = (imgData.watermarkSettings.top / containerRect.height) * currentImage.height;
+                // Scale the position from preview coordinates to original image coordinates
+                const watermarkX = imgData.watermarkSettings.left * scaleX;
+                const watermarkY = imgData.watermarkSettings.top * scaleY;
                 
                 // Apply transformations
                 ctx.save();
-                ctx.translate(watermarkX, watermarkY);
+                ctx.translate(watermarkX + (watermarkWidth / 2), watermarkY + (watermarkHeight / 2));
                 ctx.rotate(imgData.watermarkSettings.rotation * Math.PI / 180);
                 ctx.scale(imgData.watermarkSettings.scaleX, imgData.watermarkSettings.scaleY);
                 ctx.globalAlpha = imgData.watermarkSettings.opacity / 100;
@@ -708,8 +710,8 @@
                         newTop = containerRect.height - overlayRect.height - 50;
                         break;
                     case 'center':
-                        newLeft = containerRect.width / 2;
-                        newTop = containerRect.height / 2;
+                        newLeft = containerRect.width / 2 - overlayRect.width / 2;
+                        newTop = containerRect.height / 2 - overlayRect.height / 2;
                         break;
                 }
                 
@@ -732,7 +734,6 @@
                 if (currentImageIndex < 0) return;
                 sizeValue.textContent = `${this.value}%`;
                 images[currentImageIndex].watermarkSettings.width = parseInt(this.value) / 100;
-                watermarkOverlay.style.width = `${(parseInt(this.value) / 100) * 300}px`;
                 updateWatermarkStyle();
                 updateCurrentWatermarkedImage();
             });
@@ -984,7 +985,7 @@
                             const thumb = document.createElement('img');
                             thumb.src = e.target.result;
                             thumb.alt = file.name;
-                            thumb.dataset.index = images.length - 1; // Fix: Use the correct index
+                            thumb.dataset.index = images.length - 1;
                             thumb.addEventListener('click', function() {
                                 selectImage(parseInt(this.dataset.index));
                             });
@@ -1004,7 +1005,7 @@
                 });
             });
             
-            // Select image for preview - FIXED FUNCTION
+            // Select image for preview
             function selectImage(index) {
                 if (index < 0 || index >= images.length) return;
                 currentImageIndex = index;
@@ -1013,9 +1014,7 @@
                 // Update selected thumbnail
                 const thumbs = imageSelector.querySelectorAll('img');
                 thumbs.forEach((thumb, i) => {
-                    // Fix: Compare the dataset index with the current index
-                    const thumbIndex = parseInt(thumb.dataset.index);
-                    thumb.classList.toggle('selected', thumbIndex === index);
+                    thumb.classList.toggle('selected', parseInt(thumb.dataset.index) === index);
                 });
                 
                 updateWatermarkStyle();
