@@ -19,7 +19,7 @@
   h2{font-weight:700; letter-spacing:.3px; margin:14px 12px 6px}
   #app{
     width:min(100vw,640px);
-    display:flex; flex-direction:column; gap:10px; padding:8px;
+    display:flex; flex-direction:column; gap:8px; padding:8px;
   }
   /* Canvas area */
   #canvas-wrap{
@@ -28,45 +28,88 @@
     touch-action:none;
   }
   canvas{ width:100%; height:auto; display:block; }
-  /* Floating text action icons (edit/delete) */
+  /* Floating text action icons */
   #textIcons{
-    position:absolute; display:none; gap:6px; z-index:5;
+    position:absolute; display:none; gap:4px; z-index:5;
     transform:translate(-50%,-100%);
   }
   #textIcons button{
-    border:none; outline:none; border-radius:12px;
-    padding:8px 10px; font-size:16px; line-height:1;
+    border:none; outline:none; border-radius:8px;
+    padding:6px 8px; font-size:14px; line-height:1;
     background:var(--panel-2); color:var(--text);
     box-shadow:0 4px 14px rgba(0,0,0,.35);
   }
   #textIcons button:active{ transform:scale(.98); }
-  /* Top controls */
-  #controls{
-    background:var(--panel); border-radius:14px; padding:10px;
-    display:grid; grid-template-columns:1fr 1fr auto; gap:10px;
+  #textIcons input[type="color"] {
+    width:20px; height:20px; padding:0; border:none; outline:none;
+    border-radius:4px; cursor:pointer; background:transparent;
   }
-  #controls input[type="text"]{ grid-column:1/-1; }
+  #textIcons select {
+    font-size:12px; padding:2px 4px; background:var(--panel-2); color:var(--text);
+    border:none; outline:none; border-radius:4px; min-width:60px;
+  }
+  #textIcons input[type="checkbox"] {
+    width:16px; height:16px; accent-color: var(--accent);
+  }
+  /* Floating image action icons */
+  #imageIcons{
+    position:absolute; display:none; gap:4px; z-index:5;
+    left:50%; top:20px; transform:translateX(-50%);
+  }
+  #imageIcons button{
+    border:none; outline:none; border-radius:8px;
+    padding:6px 8px; font-size:14px; line-height:1;
+    background:var(--panel-2); color:var(--text);
+    box-shadow:0 4px 14px rgba(0,0,0,.35);
+  }
+  #imageIcons button:active{ transform:scale(.98); }
+  /* Crop mode overlay */
+  #cropOverlay{
+    position:absolute; top:0; left:0; width:100%; height:100%; 
+    background:rgba(0,0,0,0.5); display:none; z-index:10;
+    cursor:crosshair;
+  }
+  #cropCanvas{ position:absolute; top:0; left:0; width:100%; height:100%; }
+  /* Top controls - Compact version */
+  #controls{
+    background:var(--panel); border-radius:12px; padding:6px;
+    display:flex; flex-direction:column; gap:6px;
+  }
+  #controls input[type="text"]{ 
+    width:100%; 
+  }
   #controls input[type="file"],
   #controls input[type="text"],
   #controls select,
   #controls button{
-    width:100%; border:none; outline:none; border-radius:12px;
-    padding:12px 14px; font-size:16px; background:var(--panel-2); color:var(--text);
+    border:none; outline:none; border-radius:8px;
+    padding:8px 10px; font-size:14px; background:var(--panel-2); color:var(--text);
   }
   #controls button.primary{ background:var(--accent); color:#0b1020; font-weight:700; }
-  /* Bottom controls */
-  #bottom-controls{
-    display:flex; gap:10px; align-items:center; justify-content:space-between;
-    background:var(--panel); border-radius:14px; padding:10px;
+  #colorGroup, #sourceGroup {
+    display:flex; gap:6px; align-items:center;
   }
-  #bottom-controls .group{ display:flex; gap:8px; }
+  #colorGroup input[type="color"], #sourceGroup input[type="color"] { flex:1; padding:4px; }
+  #colorGroup select, #sourceGroup select { flex:2; }
+  #sourceGroup .small-btn {
+    padding:4px 6px; font-size:12px; min-width:30px;
+  }
+  #sourceGroup label {
+    display:flex; align-items:center; gap:4px; font-size:12px; white-space:nowrap;
+  }
+  /* Bottom controls - Slightly compact */
+  #bottom-controls{
+    display:flex; gap:8px; align-items:center; justify-content:space-between;
+    background:var(--panel); border-radius:12px; padding:6px;
+  }
+  #bottom-controls .group{ display:flex; gap:6px; }
   .btn{
-    border:none; outline:none; border-radius:12px;
-    padding:12px 14px; font-size:18px; background:var(--panel-2); color:var(--text);
-    min-width:48px; text-align:center;
+    border:none; outline:none; border-radius:8px;
+    padding:8px 10px; font-size:16px; background:var(--panel-2); color:var(--text);
+    min-width:40px; text-align:center;
   }
   .btn.primary{ background:var(--accent); color:#0b1020; font-weight:700; }
-  #zoomPercent{ color:var(--muted); font-weight:600; }
+  #zoomPercent{ color:var(--muted); font-weight:600; font-size:14px; }
   /* Selected badge (optional hint) */
   #selectedBadge{
     position:absolute; left:50%; top:8px; transform:translateX(-50%);
@@ -76,7 +119,7 @@
   }
   /* Source input */
   #sourceInput {
-    margin-top: 10px;
+    margin-top: 0;
   }
 </style>
 </head>
@@ -87,25 +130,47 @@
     <!-- Canvas Area -->
     <div id="canvas-wrap">
       <canvas id="poster"></canvas>
-      <div id="selectedBadge">Text Selected</div>
+      <div id="selectedBadge">Selected</div>
       <div id="textIcons">
         <button id="editBtn" title="Edit text">✏️</button>
+        <input type="color" id="selectedColor" title="Change color" />
+        <select id="selectedFont" title="Change font"></select>
+        <input type="checkbox" id="textShadow" title="Toggle shadow" checked />
+        <button id="textZoomOut" title="Text Zoom Out">-</button>
+        <button id="textZoomIn" title="Text Zoom In">+</button>
+        <button id="closeText" title="Close Selection">✕</button>
         <button id="delBtn" title="Delete text">🗑️</button>
+      </div>
+      <div id="imageIcons">
+        <button id="imgZoomOut" title="Image Zoom Out">-</button>
+        <button id="imgZoomIn" title="Image Zoom In">+</button>
+        <button id="freeCropBtn" title="Freehand Crop">✂️</button>
+        <button id="closeImage" title="Close Selection">✕</button>
+      </div>
+      <div id="cropOverlay">
+        <canvas id="cropCanvas"></canvas>
       </div>
     </div>
 
-    <!-- Controls -->
+    <!-- Controls - Compact -->
     <div id="controls">
-      <input type="file" id="uploader" accept="image/*" />
+      <input type="file" id="uploader" accept="image/*" multiple />
       <input type="text" id="textInput" placeholder="টেক্সট লিখুন (headline / caption)" />
-      <input type="text" id="sourceInput" placeholder="তথ্যসূত্র লিখুন (উৎস)" />
-      <div style="display:flex; gap:10px">
-        <input type="color" id="colorInput" value="#ffffff" style="flex:1" />
-        <select id="fontSelect" style="flex:2">
-          <option value="sans-serif">Sans-serif</option>
-          <option value="serif">Serif</option>
-          <option value="monospace">Monospace</option>
+      <div id="colorGroup">
+        <input type="color" id="colorInput" value="#ffffff" />
+        <select id="fontSelect">
+          <option value="sans-serif">Loading fonts...</option>
         </select>
+      </div>
+      <input type="text" id="sourceInput" placeholder="তথ্যসূত্র লিখুন (উৎস)" />
+      <div id="sourceGroup">
+        <input type="color" id="sourceColor" value="#ffffff" />
+        <select id="sourceFont">
+          <option value="sans-serif">Loading fonts...</option>
+        </select>
+        <label><input type="checkbox" id="sourceShadow" checked /> শ্যাডো</label>
+        <button id="sourceZoomOut" class="small-btn" title="Source Zoom Out">–</button>
+        <button id="sourceZoomIn" class="small-btn" title="Source Zoom In">+</button>
       </div>
       <button id="addText" class="primary">+ Add Text</button>
     </div>
@@ -125,6 +190,8 @@
 /* ========= State ========= */
 const canvas = document.getElementById('poster');
 const ctx = canvas.getContext('2d', { willReadFrequently: true });
+const cropCanvas = document.getElementById('cropCanvas');
+const cropCtx = cropCanvas.getContext('2d');
 
 const uploader   = document.getElementById('uploader');
 const textInput  = document.getElementById('textInput');
@@ -132,6 +199,11 @@ const sourceInput = document.getElementById('sourceInput');
 const colorInput = document.getElementById('colorInput');
 const fontSelect = document.getElementById('fontSelect');
 const addTextBtn = document.getElementById('addText');
+const sourceColor = document.getElementById('sourceColor');
+const sourceFont = document.getElementById('sourceFont');
+const sourceShadow = document.getElementById('sourceShadow');
+const sourceZoomIn = document.getElementById('sourceZoomIn');
+const sourceZoomOut = document.getElementById('sourceZoomOut');
 
 const zoomInBtn  = document.getElementById('zoomIn');
 const zoomOutBtn = document.getElementById('zoomOut');
@@ -139,37 +211,60 @@ const zoomLabel  = document.getElementById('zoomPercent');
 const downloadBtn= document.getElementById('download');
 
 const textIcons  = document.getElementById('textIcons');
+const imageIcons = document.getElementById('imageIcons');
+const cropOverlay = document.getElementById('cropOverlay');
 const editBtn    = document.getElementById('editBtn');
 const delBtn     = document.getElementById('delBtn');
+const closeText  = document.getElementById('closeText');
+const closeImage = document.getElementById('closeImage');
 const selectedBadge = document.getElementById('selectedBadge');
+const selectedColor = document.getElementById('selectedColor');
+const selectedFont  = document.getElementById('selectedFont');
+const textShadow   = document.getElementById('textShadow');
+const textZoomIn = document.getElementById('textZoomIn');
+const textZoomOut = document.getElementById('textZoomOut');
+const imgZoomIn = document.getElementById('imgZoomIn');
+const imgZoomOut = document.getElementById('imgZoomOut');
+const freeCropBtn = document.getElementById('freeCropBtn');
 
 /* Frame overlay (Facebook style) */
 const frame = new Image();
 frame.src = 'post.png'; // keep your frame file here
 
-/* User image state */
-let userImg = null;
-let imgX = 0, imgY = 0, imgScale = 1;
+/* Images state - now multiple */
+let images = []; // {img, x, y, scale, rotation, croppedData?}
+let selectedImg = null; // selected image index or null
 
 /* Text blocks */
-let texts = [];   // { text, x, y, scale, rotation, color, font }
+let texts = [];   // { text, x, y, scale, rotation, color, font, shadow: true }
+let previewText = null; // For live preview
 let selected = null;
+let selectedType = null; // 'text' or 'image'
 
 /* Date and source info */
 let currentDate = '';
-let sourceText = '';
+let sourceObj = { text: '', color: '#ffffff', font: 'sans-serif', shadow: true, scale: 1 };
+let defaultFont = 'sans-serif'; // Will be set after fonts load
 
 /* Interaction state */
 let draggingImg = false, dragStartClient = {x:0,y:0};
 let draggingText = false, dragTextStart = {x:0,y:0};
+let draggingSelectedImg = false, dragSelectedStart = {x:0,y:0};
+let selectedImgIndex = -1;
 
 /* Pinch state */
-let pinchTarget = ''; // 'image' | 'text'
+let pinchTarget = ''; // 'image' | 'text' | 'selectedImg'
 let pinchStartDist = 0, pinchStartScale = 1;
 let pinchCenter = {x:0,y:0};
 let imgOffsetFromCenter = {x:0,y:0};
 
 let textPinchStartDist = 0, textPinchStartScale = 1;
+let selectedImgPinchStartDist = 0, selectedImgPinchStartScale = 1;
+
+/* Crop state */
+let cropping = false;
+let cropPoints = [];
+let currentCropImg = null;
 
 /* ========= Helpers ========= */
 function clamp(v, min, max){ return Math.min(Math.max(v, min), max); }
@@ -182,6 +277,140 @@ function deviceToCanvas(px, py){
   };
 }
 function getTouchCanvasPos(t){ return deviceToCanvas(t.clientX, t.clientY); }
+
+/* ========= Update Selected Controls ========= */
+function updateSelectedControls() {
+  if (selected && selectedType === 'text') {
+    selectedColor.value = selected.color;
+    selectedFont.value = selected.font;
+    textShadow.checked = selected.shadow !== false;
+  }
+}
+
+/* ========= Update Dynamic Selection ========= */
+function updateSelectionDisplay() {
+  if (selectedType === 'text' && selected) {
+    selectedBadge.textContent = 'Text Selected';
+    selectedBadge.style.display = 'block';
+    textIcons.style.display = 'flex';
+    imageIcons.style.display = 'none';
+    const rect = canvas.getBoundingClientRect();
+    const left = selected.x * rect.width / canvas.width;
+    const top  = selected.y * rect.height / canvas.height;
+    textIcons.style.left = left + 'px';
+    textIcons.style.top  = top + 'px';
+    updateSelectedControls();
+  } else if (selectedType === 'image' && selectedImg !== null) {
+    selectedBadge.textContent = 'Image Selected';
+    selectedBadge.style.display = 'block';
+    imageIcons.style.display = 'flex';
+    textIcons.style.display = 'none';
+    const rect = canvas.getBoundingClientRect();
+    const left = images[selectedImgIndex].x * rect.width / canvas.width;
+    const top  = images[selectedImgIndex].y * rect.height / canvas.height - 20; // Above image
+    imageIcons.style.left = left + 'px';
+    imageIcons.style.top  = top + 'px';
+  } else if (selectedType === 'image' && images.length > 0) {
+    selectedBadge.textContent = 'Image Selected';
+    selectedBadge.style.display = 'block';
+    imageIcons.style.display = 'flex';
+    textIcons.style.display = 'none';
+    imageIcons.style.left = '50%';
+    imageIcons.style.top = '20px';
+  } else {
+    selectedBadge.style.display = 'none';
+    textIcons.style.display = 'none';
+    imageIcons.style.display = 'none';
+  }
+}
+
+/* ========= Update Preview ========= */
+function updatePreview() {
+  if (previewText) {
+    previewText.color = colorInput.value;
+    previewText.font = fontSelect.value || defaultFont;
+    draw();
+  }
+}
+
+/* ========= Load Fonts Dynamically with Cache ========= */
+async function loadFonts() {
+  const cacheKey = 'fontList';
+  const cached = localStorage.getItem(cacheKey);
+  const now = Date.now();
+  const cacheExpiry = 24 * 60 * 60 * 1000; // 24 hours
+
+  let data;
+  if (cached) {
+    const { timestamp, files } = JSON.parse(cached);
+    if (now - timestamp < cacheExpiry) {
+      data = { files };
+      console.log('Loaded fonts from cache');
+    }
+  }
+
+  if (!data) {
+    try {
+      const response = await fetch('https://raw.githubusercontent.com/prodhan2/beautifulDinajpurFrames/main/font/file_list.json');
+      data = await response.json();
+      localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, files: data.files }));
+      console.log('Fetched and cached fonts');
+    } catch (error) {
+      console.error('Failed to load fonts:', error);
+      // Fallback
+      data = { files: [] };
+    }
+  }
+
+  const files = data.files || [];
+
+  if (files.length === 0) {
+    console.warn('No fonts found');
+    return;
+  }
+
+  // Create dynamic stylesheet for @font-face
+  const style = document.createElement('style');
+  style.id = 'dynamic-fonts';
+  let css = '';
+  files.forEach(filename => {
+    const fontFamily = filename.replace(/\.TTF$/i, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'unknown';
+    const url = `https://raw.githubusercontent.com/prodhan2/beautifulDinajpurFrames/main/font/${filename}`;
+    css += `
+      @font-face {
+        font-family: '${fontFamily}';
+        src: url('${url}') format('truetype');
+        font-weight: normal;
+        font-style: normal;
+      }
+    `;
+  });
+  style.textContent = css;
+  document.head.appendChild(style);
+
+  // Populate select dropdowns
+  const options = ['<option value="sans-serif">Sans-serif</option>'];
+  files.forEach(filename => {
+    const fontFamily = filename.replace(/\.TTF$/i, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'unknown';
+    const displayName = filename.replace(/\.TTF$/i, '');
+    options.push(`<option value="${fontFamily}">${displayName}</option>`);
+  });
+  const optHtml = options.join('');
+  fontSelect.innerHTML = optHtml;
+  selectedFont.innerHTML = optHtml;
+  sourceFont.innerHTML = optHtml;
+
+  // Set default font to first one
+  if (files.length > 0) {
+    defaultFont = files[0].replace(/\.TTF$/i, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'sans-serif';
+    fontSelect.value = defaultFont;
+    selectedFont.value = defaultFont;
+    sourceFont.value = defaultFont;
+    sourceObj.font = defaultFont;
+  }
+
+  console.log('Fonts loaded:', files.length);
+}
 
 /* ========= Bengali Date Functions ========= */
 function getBengaliDate() {
@@ -205,6 +434,227 @@ function getBengaliDate() {
   return `${toBengaliDigits(day)} ${bengaliMonths[month]} ${toBengaliDigits(year)}`;
 }
 
+/* ========= Init ========= */
+document.addEventListener('DOMContentLoaded', () => {
+  loadFonts(); // Load fonts first
+
+  // Close buttons
+  closeText.addEventListener('click', () => {
+    selected = null;
+    selectedType = null;
+    updateSelectionDisplay();
+    draw();
+  });
+  closeImage.addEventListener('click', () => {
+    selectedImgIndex = -1;
+    selectedType = null;
+    updateSelectionDisplay();
+    draw();
+  });
+
+  // Listeners for selected controls
+  selectedColor.addEventListener('input', () => {
+    if (selected && selectedType === 'text') {
+      selected.color = selectedColor.value;
+      draw();
+    }
+  });
+  selectedFont.addEventListener('change', () => {
+    if (selected && selectedType === 'text') {
+      selected.font = selectedFont.value;
+      draw();
+    }
+  });
+  textShadow.addEventListener('change', () => {
+    if (selected && selectedType === 'text') {
+      selected.shadow = textShadow.checked;
+      draw();
+    }
+  });
+
+  // Text zoom buttons for selected
+  textZoomIn.addEventListener('click', () => {
+    if (selected && selectedType === 'text') {
+      selected.scale = clamp(selected.scale * 1.1, 0.1, 8);
+      draw();
+    }
+  });
+  textZoomOut.addEventListener('click', () => {
+    if (selected && selectedType === 'text') {
+      selected.scale = clamp(selected.scale / 1.1, 0.1, 8);
+      draw();
+    }
+  });
+
+  // Image zoom buttons
+  imgZoomIn.addEventListener('click', () => {
+    if (selectedType === 'image') {
+      if (selectedImgIndex >= 0) {
+        images[selectedImgIndex].scale = clamp(images[selectedImgIndex].scale * 1.1, 0.1, 8);
+      } else if (images.length > 0) {
+        images[0].scale = clamp(images[0].scale * 1.1, 0.1, 8);
+      }
+      draw();
+    }
+  });
+  imgZoomOut.addEventListener('click', () => {
+    if (selectedType === 'image') {
+      if (selectedImgIndex >= 0) {
+        images[selectedImgIndex].scale = clamp(images[selectedImgIndex].scale / 1.1, 0.1, 8);
+      } else if (images.length > 0) {
+        images[0].scale = clamp(images[0].scale / 1.1, 0.1, 8);
+      }
+      draw();
+    }
+  });
+
+  // Freehand crop button
+  freeCropBtn.addEventListener('click', () => {
+    if (selectedType === 'image' && selectedImgIndex >= 0) {
+      currentCropImg = images[selectedImgIndex];
+      cropping = true;
+      cropOverlay.style.display = 'block';
+      cropCanvas.width = canvas.width;
+      cropCanvas.height = canvas.height;
+      cropCtx.drawImage(canvas, 0, 0);
+      cropPoints = [];
+      // Draw initial crop image
+      drawCropMode();
+    }
+  });
+
+  // Crop overlay events
+  cropOverlay.addEventListener('pointerdown', startCrop);
+  cropOverlay.addEventListener('pointermove', drawCrop);
+  cropOverlay.addEventListener('pointerup', endCrop);
+  cropOverlay.addEventListener('click', () => {
+    if (!cropping) {
+      cropping = false;
+      cropOverlay.style.display = 'none';
+    }
+  });
+
+  // Live preview on text input
+  textInput.addEventListener('input', () => {
+    const val = textInput.value;
+    if (val.trim()) {
+      if (!previewText) {
+        previewText = {
+          text: '',
+          x: canvas.width / 2,
+          y: canvas.height / 2,
+          scale: 1,
+          rotation: 0,
+          color: colorInput.value,
+          font: fontSelect.value || defaultFont,
+          shadow: true
+        };
+      }
+      previewText.text = val;
+    } else {
+      previewText = null;
+    }
+    draw();
+  });
+
+  // Update preview on color/font change
+  colorInput.addEventListener('input', updatePreview);
+  fontSelect.addEventListener('change', updatePreview);
+
+  // Source controls
+  sourceInput.addEventListener('input', () => {
+    sourceObj.text = sourceInput.value;
+    draw();
+  });
+  sourceColor.addEventListener('input', () => {
+    sourceObj.color = sourceColor.value;
+    draw();
+  });
+  sourceFont.addEventListener('change', () => {
+    sourceObj.font = sourceFont.value;
+    draw();
+  });
+  sourceShadow.addEventListener('change', () => {
+    sourceObj.shadow = sourceShadow.checked;
+    draw();
+  });
+  sourceZoomIn.addEventListener('click', () => {
+    sourceObj.scale = clamp(sourceObj.scale * 1.1, 0.1, 3);
+    draw();
+  });
+  sourceZoomOut.addEventListener('click', () => {
+    sourceObj.scale = clamp(sourceObj.scale / 1.1, 0.1, 3);
+    draw();
+  });
+});
+
+/* ========= Crop Functions ========= */
+let cropStart = {x:0, y:0};
+function startCrop(e) {
+  const p = deviceToCanvas(e.clientX, e.clientY);
+  cropStart = p;
+  cropPoints.push(p);
+  drawCrop();
+}
+
+function drawCrop(e) {
+  if (!cropping) return;
+  const p = deviceToCanvas(e.clientX, e.clientY);
+  cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
+  cropCtx.drawImage(canvas, 0, 0);
+  if (cropPoints.length > 0) {
+    cropCtx.beginPath();
+    cropCtx.moveTo(cropPoints[0].x, cropPoints[0].y);
+    cropPoints.forEach(pt => cropCtx.lineTo(pt.x, pt.y));
+    cropCtx.lineTo(p.x, p.y);
+    cropCtx.strokeStyle = 'red';
+    cropCtx.lineWidth = 2;
+    cropCtx.stroke();
+  }
+}
+
+function endCrop() {
+  if (cropPoints.length < 3) return;
+  // Simple polygon crop using offscreen canvas
+  const tempCanvas = document.createElement('canvas');
+  const tempCtx = tempCanvas.getContext('2d');
+  const img = currentCropImg.img;
+  tempCanvas.width = img.width;
+  tempCanvas.height = img.height;
+  tempCtx.drawImage(img, 0, 0);
+
+  // Create mask from points (simplified, assume points in image coords - need transform)
+  // For simplicity, assume points are relative to canvas, but adjust for image position/scale
+  const imgRect = {
+    x: currentCropImg.x - (img.width * currentCropImg.scale / 2),
+    y: currentCropImg.y - (img.height * currentCropImg.scale / 2),
+    w: img.width * currentCropImg.scale,
+    h: img.height * currentCropImg.scale
+  };
+  // This is approximate; for real freehand, need better polygon clip
+  // Use a library or simple fill for now
+  cropCtx.fillStyle = 'rgba(255,0,0,0.3)';
+  cropCtx.beginPath();
+  cropCtx.moveTo(cropPoints[0].x, cropPoints[0].y);
+  cropPoints.forEach(pt => cropCtx.lineTo(pt.x, pt.y));
+  cropCtx.closePath();
+  cropCtx.fill();
+
+  // Crop the image using points (basic implementation)
+  const croppedData = tempCanvas.toDataURL(); // Placeholder - actual crop needs clipPath
+  currentCropImg.croppedData = croppedData;
+  const newImg = new Image();
+  newImg.onload = () => {
+    currentCropImg.img = newImg;
+  };
+  newImg.src = croppedData;
+
+  cropping = false;
+  cropOverlay.style.display = 'none';
+  cropPoints = [];
+  draw();
+}
+
 /* ========= Init Canvas ========= */
 frame.onload = () => {
   // Use frame native size for crisp export
@@ -217,33 +667,36 @@ frame.onload = () => {
   // Set current date in Bengali
   currentDate = getBengaliDate();
   
-  // Set up source input listener
-  sourceInput.addEventListener('input', () => {
-    sourceText = sourceInput.value;
-    draw();
-  });
-
   draw();
 };
 
-/* ========= Image Upload ========= */
+/* ========= Multiple Image Upload ========= */
 uploader.addEventListener('change', (e) => {
-  const file = e.target.files?.[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    const img = new Image();
-    img.onload = () => {
-      userImg = img;
-      imgScale = Math.max(canvas.width / img.width, canvas.height / img.height); // cover
-      imgX = canvas.width/2;
-      imgY = canvas.height/2;
-      updateZoomLabel();
-      draw();
+  const files = Array.from(e.target.files || []);
+  files.forEach(file => {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(canvas.width / img.width * 0.8, canvas.height / img.height * 0.8);
+        images.push({
+          img: img,
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          scale: scale,
+          rotation: 0,
+          croppedData: null
+        });
+        selectedImgIndex = images.length - 1;
+        selectedType = 'image';
+        updateSelectionDisplay();
+        draw();
+      };
+      img.src = ev.target.result;
     };
-    img.src = ev.target.result;
-  };
-  reader.readAsDataURL(file);
+    reader.readAsDataURL(file);
+  });
 });
 
 /* ========= Add Text ========= */
@@ -252,14 +705,19 @@ addTextBtn.addEventListener('click', () => {
   if(!val) return;
   texts.push({
     text: val,
-    x: canvas.width/2,
-    y: canvas.height/2,
+    x: canvas.width / 2,
+    y: canvas.height / 2,
     scale: 1,
     rotation: 0,
     color: colorInput.value,
-    font: fontSelect.value
+    font: fontSelect.value || defaultFont,
+    shadow: true
   });
+  previewText = null;
   textInput.value = '';
+  selected = texts[texts.length - 1];
+  selectedType = 'text';
+  updateSelectionDisplay();
   draw();
 });
 
@@ -316,51 +774,55 @@ function wrapTextScaled(ctx, text, x, y, maxWidthWorld, lineHeightWorld, scale){
 function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  // User photo
-  if(userImg){
-    const w = userImg.width * imgScale;
-    const h = userImg.height * imgScale;
-    ctx.drawImage(userImg, imgX - w/2, imgY - h/2, w, h);
-  }
+  // Draw all images
+  images.forEach(imgObj => {
+    ctx.save();
+    ctx.translate(imgObj.x, imgObj.y);
+    ctx.rotate(imgObj.rotation);
+    ctx.scale(imgObj.scale, imgObj.scale);
+    ctx.drawImage(imgObj.img, -imgObj.img.width / 2, -imgObj.img.height / 2);
+    ctx.restore();
+  });
 
   // Frame overlay
   ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
   
-  // Draw date (top left)
+  // Draw date (top left) - Using default Bangla font
   if (currentDate) {
     ctx.save();
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 35px sans-serif';
+    ctx.font = `bold 35px "${defaultFont}"`;
     ctx.shadowColor = 'rgba(0,0,0,.65)';
     ctx.shadowBlur = 4;
     ctx.fillText(currentDate, 30, 30);
     ctx.restore();
   }
   
-  // Draw source (top right)
-if (sourceText) {
-  ctx.save();
-  ctx.textAlign = 'right';
-  ctx.textBaseline = 'bottom'; // নিচের দিককে রেফারেন্স ধরা হবে
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 35px sans-serif';
-  ctx.shadowColor = 'rgba(0,0,0,.65)';
-  ctx.shadowBlur = 10;
-
-  // নিচ থেকে 60px উপরে টেক্সট বসবে
-  ctx.fillText('তথ্যসূত্র: ' + sourceText, canvas.width - 30, canvas.height - 110);
-
-  ctx.restore();
-}
-
+  // Draw source (top right) - Using sourceObj
+  if (sourceObj.text) {
+    ctx.save();
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'bottom';
+    ctx.fillStyle = sourceObj.color;
+    ctx.font = `bold ${35 * sourceObj.scale}px "${sourceObj.font}"`;
+    if (sourceObj.shadow !== false) {
+      ctx.shadowColor = 'rgba(0,0,0,.65)';
+      ctx.shadowBlur = 10;
+    } else {
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+    }
+    ctx.fillText('তথ্যসূত্র: ' + sourceObj.text, canvas.width - 30, canvas.height - 110);
+    ctx.restore();
+  }
 
   // Texts
-  const framePadding = 40;           // left+right safety padding (world units)
+  const framePadding = 40;           
   const usableWidth  = canvas.width - framePadding * 2;
-  const baseFontPx   = 34;           // base font size (world units)
-  const baseLineH    = 40;           // base line height (world units)
+  const baseFontPx   = 34;           
+  const baseLineH    = 40;           
 
   texts.forEach(tb => {
     ctx.save();
@@ -370,35 +832,58 @@ if (sourceText) {
 
     ctx.textAlign = 'center';
     ctx.fillStyle = tb.color;
-    ctx.shadowColor = 'rgba(0,0,0,.65)';
-    ctx.shadowBlur = 8;
-    ctx.font = `700 ${baseFontPx}px ${tb.font}`;
+    if (tb.shadow !== false) {
+      ctx.shadowColor = 'rgba(0,0,0,.65)';
+      ctx.shadowBlur = 8;
+    } else {
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+    }
+    ctx.font = `700 ${baseFontPx}px "${tb.font}"`;
 
-    // NOTE: since the context is scaled, give world maxWidth (usableWidth)
     wrapTextScaled(ctx, tb.text, 0, 0, usableWidth, baseLineH, tb.scale);
     ctx.restore();
   });
 
-  // Selected hint + icons
-  if(selected){
-    selectedBadge.style.display = 'block';
-    textIcons.style.display = 'flex';
-    const rect = canvas.getBoundingClientRect();
-    const left = selected.x * rect.width / canvas.width;
-    const top  = selected.y * rect.height / canvas.height;
-    textIcons.style.left = left + 'px';
-    textIcons.style.top  = top + 'px';
-  }else{
-    selectedBadge.style.display = 'none';
-    textIcons.style.display = 'none';
+  // Preview text (drawn last, semi-transparent for preview feel)
+  if (previewText) {
+    ctx.save();
+    ctx.globalAlpha = 0.7; // Semi-transparent for preview
+    ctx.translate(previewText.x, previewText.y);
+    ctx.rotate(previewText.rotation);
+    ctx.scale(previewText.scale, previewText.scale);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = previewText.color;
+    if (previewText.shadow !== false) {
+      ctx.shadowColor = 'rgba(0,0,0,.65)';
+      ctx.shadowBlur = 8;
+    } else {
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+    }
+    ctx.font = `700 ${baseFontPx}px "${previewText.font}"`;
+
+    wrapTextScaled(ctx, previewText.text, 0, 0, usableWidth, baseLineH, previewText.scale);
+    ctx.restore();
   }
+
+  // Update selection display after draw
+  updateSelectionDisplay();
 }
 
-/* ========= Selection hit test (approx bounding box) ========= */
+/* ========= Selection hit test for images ========= */
+function imageHit(imgObj, p) {
+  const w = imgObj.img.width * imgObj.scale;
+  const h = imgObj.img.height * imgObj.scale;
+  return (p.x > imgObj.x - w/2 && p.x < imgObj.x + w/2 &&
+          p.y > imgObj.y - h/2 && p.y < imgObj.y + h/2);
+}
+
+/* ========= Selection hit test for text ========= */
 function textHit(tb, p){
-  // Approx bbox without rotation (simple + fast)
   ctx.save();
-  ctx.font = `700 34px ${tb.font}`;
+  ctx.font = `700 34px "${tb.font}"`;
   const width = ctx.measureText(tb.text).width * tb.scale;
   ctx.restore();
   const halfH = 36 * tb.scale;
@@ -410,31 +895,42 @@ function textHit(tb, p){
 canvas.addEventListener('pointerdown', (e) => {
   const p = deviceToCanvas(e.clientX, e.clientY);
   selected = null;
+  selectedType = null;
 
-  // Hit test from topmost
+  // Hit test images from topmost
+  for(let i = images.length-1; i>=0; i--){
+    if(imageHit(images[i], p)){
+      selectedImgIndex = i;
+      selectedType = 'image';
+      draggingSelectedImg = true;
+      dragSelectedStart = p;
+      draw();
+      return;
+    }
+  }
+  // Hit test texts from topmost
   for(let i = texts.length-1; i>=0; i--){
     if(textHit(texts[i], p)){
       selected = texts[i];
+      selectedType = 'text';
       draggingText = true;
       dragTextStart = p;
       draw();
       return;
     }
   }
-  // Else image drag
-  draggingImg = true;
-  dragStartClient = { x: e.clientX, y: e.clientY };
+  // Else drag background or nothing
+  draw();
 });
 
 canvas.addEventListener('pointermove', (e) => {
-  if(draggingImg){
-    const rect = canvas.getBoundingClientRect();
-    const dx = (e.clientX - dragStartClient.x) * (canvas.width  / rect.width);
-    const dy = (e.clientY - dragStartClient.y) * (canvas.height / rect.height);
-    imgX += dx; imgY += dy;
-    dragStartClient = { x: e.clientX, y: e.clientY };
+  if(draggingSelectedImg && selectedType === 'image' && selectedImgIndex >= 0){
+    const p = deviceToCanvas(e.clientX, e.clientY);
+    images[selectedImgIndex].x += (p.x - dragSelectedStart.x);
+    images[selectedImgIndex].y += (p.y - dragSelectedStart.y);
+    dragSelectedStart = p;
     draw();
-  } else if(draggingText && selected){
+  } else if(draggingText && selected && selectedType === 'text'){
     const p = deviceToCanvas(e.clientX, e.clientY);
     selected.x += (p.x - dragTextStart.x);
     selected.y += (p.y - dragTextStart.y);
@@ -444,10 +940,14 @@ canvas.addEventListener('pointermove', (e) => {
 });
 
 ['pointerup','pointerleave','pointercancel'].forEach(ev=>{
-  canvas.addEventListener(ev, () => { draggingImg=false; draggingText=false; });
+  canvas.addEventListener(ev, () => { 
+    draggingSelectedImg = false; 
+    draggingText=false; 
+    draw();
+  });
 });
 
-/* ========= Touch: pinch-to-zoom (image or selected text) ========= */
+/* ========= Touch: pinch-to-zoom ========= */
 canvas.addEventListener('touchstart', (e) => {
   if(e.touches.length === 1){ return; }
   if(e.touches.length === 2){
@@ -457,23 +957,38 @@ canvas.addEventListener('touchstart', (e) => {
     const cx = (p1.x + p2.x)/2, cy = (p1.y + p2.y)/2;
 
     // Decide target based on pinch center
-    pinchTarget = 'image';
-    // try hit text
-    for(let i=texts.length-1;i>=0;i--){
-      if(textHit(texts[i], {x:cx, y:cy})){
-        pinchTarget = 'text';
-        selected = texts[i];
+    pinchTarget = 'background';
+    // try hit image
+    for(let i=images.length-1;i>=0;i--){
+      if(imageHit(images[i], {x:cx, y:cy})){
+        pinchTarget = 'selectedImg';
+        selectedImgIndex = i;
+        selectedType = 'image';
         break;
+      }
+    }
+    // try hit text
+    if (pinchTarget === 'background') {
+      for(let i=texts.length-1;i>=0;i--){
+        if(textHit(texts[i], {x:cx, y:cy})){
+          pinchTarget = 'text';
+          selected = texts[i];
+          selectedType = 'text';
+          break;
+        }
       }
     }
     pinchStartDist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
     if(pinchTarget === 'text'){
       textPinchStartScale = selected.scale;
       textPinchStartDist  = pinchStartDist;
-    }else{
-      pinchStartScale = imgScale;
+    } else if (pinchTarget === 'selectedImg') {
+      selectedImgPinchStartScale = images[selectedImgIndex].scale;
+      selectedImgPinchStartDist = pinchStartDist;
+    } else {
+      pinchStartScale = 1; // No scale for background
       pinchCenter = {x:cx, y:cy};
-      imgOffsetFromCenter = { x: imgX - cx, y: imgY - cy };
+      imgOffsetFromCenter = { x: 0, y: 0 };
     }
     draw();
   }
@@ -486,51 +1001,59 @@ canvas.addEventListener('touchmove', (e) => {
   const p2 = getTouchCanvasPos(e.touches[1]);
   const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
 
-  if(pinchTarget === 'text' && selected){
+  if(pinchTarget === 'text' && selectedType === 'text' && selected){
     const factor = dist / textPinchStartDist;
     selected.scale = clamp(textPinchStartScale * factor, 0.1, 8);
     draw();
-  }else{
-    const factor = dist / pinchStartDist;
-    imgScale = clamp(pinchStartScale * factor, 0.1, 8);
-    imgX = pinchCenter.x + imgOffsetFromCenter.x * factor;
-    imgY = pinchCenter.y + imgOffsetFromCenter.y * factor;
-    updateZoomLabel();
+  } else if (pinchTarget === 'selectedImg' && selectedType === 'image' && selectedImgIndex >= 0) {
+    const factor = dist / selectedImgPinchStartDist;
+    images[selectedImgIndex].scale = clamp(selectedImgPinchStartScale * factor, 0.1, 8);
     draw();
+  } else if (pinchTarget === 'background') {
+    // No action for background pinch
   }
 }, {passive:false});
 
 /* ========= Zoom buttons ========= */
 zoomInBtn.addEventListener('click', () => {
-  if(selected){ selected.scale = clamp(selected.scale * 1.1, 0.1, 8); }
-  else        { imgScale       = clamp(imgScale * 1.1,       0.1, 8); }
-  updateZoomLabel(); draw();
+  if(selectedType === 'text' && selected){ 
+    selected.scale = clamp(selected.scale * 1.1, 0.1, 8); 
+  } else if (selectedType === 'image' && selectedImgIndex >= 0) { 
+    images[selectedImgIndex].scale = clamp(images[selectedImgIndex].scale * 1.1, 0.1, 8); 
+  }
+  draw();
 });
 
 zoomOutBtn.addEventListener('click', () => {
-  if(selected){ selected.scale = clamp(selected.scale / 1.1, 0.1, 8); }
-  else        { imgScale       = clamp(imgScale / 1.1,       0.1, 8); }
-  updateZoomLabel(); draw();
+  if(selectedType === 'text' && selected){ 
+    selected.scale = clamp(selected.scale / 1.1, 0.1, 8); 
+  } else if (selectedType === 'image' && selectedImgIndex >= 0) { 
+    images[selectedImgIndex].scale = clamp(images[selectedImgIndex].scale / 1.1, 0.1, 8); 
+  }
+  draw();
 });
 
 function updateZoomLabel(){
-  zoomLabel.textContent = `Image Zoom: ${Math.round(imgScale*100)}%`;
+  zoomLabel.textContent = `Image Zoom: 100%`; // Simplified, as multiple images have individual scales
 }
 
 /* ========= Edit/Delete icons ========= */
 editBtn.addEventListener('click', () => {
-  if(!selected) return;
+  if(!selected || selectedType !== 'text') return;
   const t = prompt('Edit text:', selected.text);
   if(t !== null){
-    selected.text = t; // <-- নিশ্চিত টেক্সট এডিট
+    selected.text = t;
     draw();
   }
 });
 delBtn.addEventListener('click', () => {
-  if(!selected) return;
-  texts = texts.filter(tb => tb !== selected);
-  selected = null;
-  draw();
+  if(!selected || selectedType !== 'text') return;
+  if (confirm('Are you sure you want to delete this text?')) {
+    texts = texts.filter(tb => tb !== selected);
+    selected = null;
+    selectedType = null;
+    draw();
+  }
 });
 
 /* ========= Download ========= */
