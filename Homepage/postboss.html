@@ -26,8 +26,9 @@
     position:relative; border-radius:16px; overflow:hidden;
     background:#000; box-shadow:0 8px 24px rgba(0,0,0,.35);
     touch-action:none;
+    will-change: transform; /* For smoother mobile rendering */
   }
-  canvas{ width:100%; height:auto; display:block; }
+  canvas{ width:100%; height:auto; display:block; image-rendering: -webkit-optimize-contrast; }
   /* Floating text action icons */
   #textIcons{
     position:absolute; display:none; gap:4px; z-index:5;
@@ -84,32 +85,47 @@
   #controls button{
     border:none; outline:none; border-radius:8px;
     padding:8px 10px; font-size:14px; background:var(--panel-2); color:var(--text);
+    min-height:44px; /* Touch-friendly */
+    -webkit-tap-highlight-color: transparent;
   }
   #controls button.primary{ background:var(--accent); color:#0b1020; font-weight:700; }
   #colorGroup, #sourceGroup {
-    display:flex; gap:6px; align-items:center;
+    display:flex; flex-wrap:wrap; gap:6px; align-items:center;
   }
-  #colorGroup input[type="color"], #sourceGroup input[type="color"] { flex:1; padding:4px; }
-  #colorGroup select, #sourceGroup select { flex:2; }
+  #colorGroup input[type="color"], #sourceGroup input[type="color"] { flex:1; padding:4px; min-width:60px; }
+  #colorGroup select, #sourceGroup select { flex:2; min-width:100px; }
   #sourceGroup .small-btn {
     padding:4px 6px; font-size:12px; min-width:30px;
   }
   #sourceGroup label {
     display:flex; align-items:center; gap:4px; font-size:12px; white-space:nowrap;
   }
+  .row {
+    display: flex; gap: 6px; align-items: center; flex-wrap:wrap;
+  }
+  .row input[type="file"], .row select {
+    flex: 1; min-width:120px;
+  }
   /* Bottom controls - Slightly compact */
   #bottom-controls{
     display:flex; gap:8px; align-items:center; justify-content:space-between;
     background:var(--panel); border-radius:12px; padding:6px;
+    flex-wrap: wrap;
   }
   #bottom-controls .group{ display:flex; gap:6px; }
   .btn{
     border:none; outline:none; border-radius:8px;
     padding:8px 10px; font-size:16px; background:var(--panel-2); color:var(--text);
-    min-width:40px; text-align:center;
+    min-width:44px; min-height:44px; text-align:center; /* Touch-friendly */
+    -webkit-tap-highlight-color: transparent;
   }
   .btn.primary{ background:var(--accent); color:#0b1020; font-weight:700; }
   #zoomPercent{ color:var(--muted); font-weight:600; font-size:14px; }
+  /* Selection dropdown */
+  #itemSelect {
+    background:var(--panel-2); color:var(--text); border:none; outline:none; border-radius:8px;
+    padding:8px 10px; font-size:14px; min-width:120px; min-height:44px;
+  }
   /* Selected badge (optional hint) */
   #selectedBadge{
     position:absolute; left:50%; top:8px; transform:translateX(-50%);
@@ -120,6 +136,22 @@
   /* Source input */
   #sourceInput {
     margin-top: 0;
+  }
+  /* Media Queries for Responsiveness */
+  @media (max-width: 480px) {
+    #app { padding: 4px; gap: 4px; }
+    #controls { padding: 4px; gap: 4px; }
+    #bottom-controls { padding: 4px; gap: 4px; }
+    #colorGroup, #sourceGroup { flex-direction: column; align-items: stretch; }
+    .row { flex-direction: column; align-items: stretch; }
+    .btn, #controls input[type="file"], #controls input[type="text"], #controls select, #itemSelect { font-size: 16px; padding: 12px; min-height: 48px; }
+    #sourceGroup .small-btn { min-width: 40px; min-height: 40px; }
+    #textIcons, #imageIcons { gap: 2px; }
+    #textIcons button, #imageIcons button { padding: 4px 6px; font-size: 12px; }
+  }
+  @media (max-width: 320px) {
+    #zoomPercent { font-size: 12px; }
+    .btn { min-width: 36px; min-height: 36px; font-size: 14px; padding: 6px; }
   }
 </style>
 </head>
@@ -132,6 +164,7 @@
       <canvas id="poster"></canvas>
       <div id="selectedBadge">Selected</div>
       <div id="textIcons">
+        <button id="moveTextBtn" title="Free Transform">↔️</button>
         <button id="editBtn" title="Edit text">✏️</button>
         <input type="color" id="selectedColor" title="Change color" />
         <select id="selectedFont" title="Change font"></select>
@@ -142,6 +175,7 @@
         <button id="delBtn" title="Delete text">🗑️</button>
       </div>
       <div id="imageIcons">
+        <button id="moveImgBtn" title="Free Transform">↔️</button>
         <button id="imgZoomOut" title="Image Zoom Out">-</button>
         <button id="imgZoomIn" title="Image Zoom In">+</button>
         <button id="freeCropBtn" title="Freehand Crop">✂️</button>
@@ -154,7 +188,12 @@
 
     <!-- Controls - Compact -->
     <div id="controls">
-      <input type="file" id="uploader" accept="image/*" multiple />
+      <div class="row">
+        <input type="file" id="uploader" accept="image/*" multiple />
+        <select id="itemSelect">
+          <option value="">কোন আইটেম সিলেক্ট করুন</option>
+        </select>
+      </div>
       <input type="text" id="textInput" placeholder="টেক্সট লিখুন (headline / caption)" />
       <div id="colorGroup">
         <input type="color" id="colorInput" value="#ffffff" />
@@ -189,7 +228,7 @@
 <script>
 /* ========= State ========= */
 const canvas = document.getElementById('poster');
-const ctx = canvas.getContext('2d', { willReadFrequently: true });
+const ctx = canvas.getContext('2d', { willReadFrequently: true, alpha: false }); // alpha: false for perf
 const cropCanvas = document.getElementById('cropCanvas');
 const cropCtx = cropCanvas.getContext('2d');
 
@@ -209,6 +248,7 @@ const zoomInBtn  = document.getElementById('zoomIn');
 const zoomOutBtn = document.getElementById('zoomOut');
 const zoomLabel  = document.getElementById('zoomPercent');
 const downloadBtn= document.getElementById('download');
+const itemSelect = document.getElementById('itemSelect');
 
 const textIcons  = document.getElementById('textIcons');
 const imageIcons = document.getElementById('imageIcons');
@@ -226,10 +266,14 @@ const textZoomOut = document.getElementById('textZoomOut');
 const imgZoomIn = document.getElementById('imgZoomIn');
 const imgZoomOut = document.getElementById('imgZoomOut');
 const freeCropBtn = document.getElementById('freeCropBtn');
+const moveTextBtn = document.getElementById('moveTextBtn');
+const moveImgBtn = document.getElementById('moveImgBtn');
 
 /* Frame overlay (Facebook style) */
 const frame = new Image();
 frame.src = 'post.png'; // keep your frame file here
+frame.crossOrigin = 'anonymous'; // For canvas tainting if needed
+let frameBitmap = null;
 
 /* Images state - now multiple */
 let images = []; // {img, x, y, scale, rotation, croppedData?}
@@ -247,10 +291,16 @@ let sourceObj = { text: '', color: '#ffffff', font: 'sans-serif', shadow: true, 
 let defaultFont = 'sans-serif'; // Will be set after fonts load
 
 /* Interaction state */
-let draggingImg = false, dragStartClient = {x:0,y:0};
-let draggingText = false, dragTextStart = {x:0,y:0};
-let draggingSelectedImg = false, dragSelectedStart = {x:0,y:0};
 let selectedImgIndex = -1;
+let showHandles = false;
+let transformMode = null; // 'move', 'scale', 'rotate'
+let currentObj = null;
+let isCurrentText = false;
+let dragStartX = 0, dragStartY = 0;
+let startObjX = 0, startObjY = 0;
+let startScale = 1;
+let startRadial = 0;
+let prevAngle = 0;
 
 /* Pinch state */
 let pinchTarget = ''; // 'image' | 'text' | 'selectedImg'
@@ -266,6 +316,21 @@ let cropping = false;
 let cropPoints = [];
 let currentCropImg = null;
 
+/* Optimization state */
+let needsRedraw = false;
+let redrawTimeout = null;
+let textBounds = []; // Cached bounds for texts: {index, x, y, width, height}
+let lastDrawTime = 0;
+const framePadding = 40;           
+let usableWidth  = 0; // Set after canvas size
+const baseFontPx   = 34;           
+const baseLineH    = 40;           
+let MIN_REDRAW_INTERVAL = 16; // ~60fps
+const handleRadius = 8;
+const rotOffset = 40;
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+MIN_REDRAW_INTERVAL = isMobile ? 33 : 16; // 30fps on mobile
+
 /* ========= Helpers ========= */
 function clamp(v, min, max){ return Math.min(Math.max(v, min), max); }
 
@@ -278,6 +343,67 @@ function deviceToCanvas(px, py){
 }
 function getTouchCanvasPos(t){ return deviceToCanvas(t.clientX, t.clientY); }
 
+/* ========= Get Unscaled Dims ========= */
+function getUnscaledDims(obj, isText) {
+  if (isText) {
+    const dims = getWrappedTextDimensions(obj);
+    const s = obj.scale;
+    return { width: dims.width / s, height: dims.height / s };
+  } else {
+    return { width: obj.img.width, height: obj.img.height };
+  }
+}
+
+/* ========= Point in Object (with rotation and scale) ========= */
+function isPointInObject(p, obj, isText) {
+  const s = obj.scale;
+  const th = obj.rotation;
+  const cos = Math.cos(th);
+  const sin = Math.sin(th);
+  let dx = p.x - obj.x;
+  let dy = p.y - obj.y;
+  let itx = cos * dx + sin * dy;
+  let ity = -sin * dx + cos * dy;
+  let local_x = itx / s;
+  let local_y = ity / s;
+  let unscaled = getUnscaledDims(obj, isText);
+  let halfUnW = unscaled.width / 2;
+  let halfUnH = unscaled.height / 2;
+  return Math.abs(local_x) <= halfUnW && Math.abs(local_y) <= halfUnH;
+}
+
+/* ========= Image Resize for Mobile ========= */
+function resizeImage(img, maxWidth, maxHeight, quality = 0.8) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  let {width, height} = img;
+  if (width > maxWidth || height > maxHeight) {
+    const ratio = Math.min(maxWidth / width, maxHeight / height);
+    width *= ratio;
+    height *= ratio;
+  }
+  canvas.width = width;
+  canvas.height = height;
+  ctx.drawImage(img, 0, 0, width, height);
+  return canvas.toDataURL('image/jpeg', quality);
+}
+
+/* ========= Throttled Redraw ========= */
+function scheduleRedraw() {
+  const now = performance.now();
+  if (now - lastDrawTime < MIN_REDRAW_INTERVAL) return; // Skip if too soon
+  needsRedraw = true;
+  if (redrawTimeout) return;
+  redrawTimeout = requestAnimationFrame(() => {
+    if (needsRedraw) {
+      draw();
+      needsRedraw = false;
+      lastDrawTime = performance.now();
+    }
+    redrawTimeout = null;
+  });
+}
+
 /* ========= Update Selected Controls ========= */
 function updateSelectedControls() {
   if (selected && selectedType === 'text') {
@@ -289,9 +415,13 @@ function updateSelectedControls() {
 
 /* ========= Update Dynamic Selection ========= */
 function updateSelectionDisplay() {
+  let badgeText = 'Selected';
+  if (showHandles) badgeText = 'Free Transform';
+  else if (selectedType === 'text' && selected) badgeText = 'Text Selected';
+  else if (selectedType === 'image') badgeText = 'Image Selected';
+  selectedBadge.textContent = badgeText;
+  selectedBadge.style.display = selectedType ? 'block' : 'none';
   if (selectedType === 'text' && selected) {
-    selectedBadge.textContent = 'Text Selected';
-    selectedBadge.style.display = 'block';
     textIcons.style.display = 'flex';
     imageIcons.style.display = 'none';
     const rect = canvas.getBoundingClientRect();
@@ -300,28 +430,42 @@ function updateSelectionDisplay() {
     textIcons.style.left = left + 'px';
     textIcons.style.top  = top + 'px';
     updateSelectedControls();
-  } else if (selectedType === 'image' && selectedImg !== null) {
-    selectedBadge.textContent = 'Image Selected';
-    selectedBadge.style.display = 'block';
+  } else if (selectedType === 'image') {
     imageIcons.style.display = 'flex';
     textIcons.style.display = 'none';
-    const rect = canvas.getBoundingClientRect();
-    const left = images[selectedImgIndex].x * rect.width / canvas.width;
-    const top  = images[selectedImgIndex].y * rect.height / canvas.height - 20; // Above image
-    imageIcons.style.left = left + 'px';
-    imageIcons.style.top  = top + 'px';
-  } else if (selectedType === 'image' && images.length > 0) {
-    selectedBadge.textContent = 'Image Selected';
-    selectedBadge.style.display = 'block';
-    imageIcons.style.display = 'flex';
-    textIcons.style.display = 'none';
-    imageIcons.style.left = '50%';
-    imageIcons.style.top = '20px';
+    if (selectedImgIndex !== -1) {
+      const imgObj = images[selectedImgIndex];
+      const rect = canvas.getBoundingClientRect();
+      const left = imgObj.x * rect.width / canvas.width;
+      const top  = imgObj.y * rect.height / canvas.height - 20;
+      imageIcons.style.left = left + 'px';
+      imageIcons.style.top  = top + 'px';
+    } else {
+      imageIcons.style.left = '50%';
+      imageIcons.style.top = '20px';
+    }
   } else {
-    selectedBadge.style.display = 'none';
     textIcons.style.display = 'none';
     imageIcons.style.display = 'none';
   }
+  updateItemSelectOptions();
+}
+
+/* ========= Update Item Select Dropdown ========= */
+function updateItemSelectOptions() {
+  itemSelect.innerHTML = '<option value="">কোন আইটেম সিলেক্ট করুন</option>';
+  texts.forEach((t, i) => {
+    const opt = document.createElement('option');
+    opt.value = `text-${i}`;
+    opt.textContent = `টেক্সট: ${t.text.substring(0, 20)}${t.text.length > 20 ? '...' : ''}`;
+    itemSelect.appendChild(opt);
+  });
+  images.forEach((img, i) => {
+    const opt = document.createElement('option');
+    opt.value = `image-${i}`;
+    opt.textContent = `ইমেজ ${i + 1}`;
+    itemSelect.appendChild(opt);
+  });
 }
 
 /* ========= Update Preview ========= */
@@ -329,7 +473,7 @@ function updatePreview() {
   if (previewText) {
     previewText.color = colorInput.value;
     previewText.font = fontSelect.value || defaultFont;
-    draw();
+    scheduleRedraw();
   }
 }
 
@@ -382,6 +526,7 @@ async function loadFonts() {
         src: url('${url}') format('truetype');
         font-weight: normal;
         font-style: normal;
+        font-display: swap; /* For faster loading */
       }
     `;
   });
@@ -414,7 +559,7 @@ async function loadFonts() {
 
 /* ========= Bengali Date Functions ========= */
 function getBengaliDate() {
-  const now = new Date();
+  const now = new Date('2025-10-18'); // Use provided date
   const day = now.getDate();
   const month = now.getMonth();
   const year = now.getFullYear();
@@ -422,7 +567,7 @@ function getBengaliDate() {
   // Bengali month names
   const bengaliMonths = [
     'জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন',
-    'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'
+    'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বার'
   ];
   
   // Convert numbers to Bengali digits
@@ -442,33 +587,80 @@ document.addEventListener('DOMContentLoaded', () => {
   closeText.addEventListener('click', () => {
     selected = null;
     selectedType = null;
+    showHandles = false;
+    transformMode = null;
     updateSelectionDisplay();
-    draw();
+    scheduleRedraw();
   });
   closeImage.addEventListener('click', () => {
     selectedImgIndex = -1;
     selectedType = null;
+    showHandles = false;
+    transformMode = null;
     updateSelectionDisplay();
-    draw();
+    scheduleRedraw();
+  });
+
+  // Move buttons for free transform
+  moveTextBtn.addEventListener('click', () => {
+    if (selectedType === 'text' && selected) {
+      showHandles = !showHandles;
+      updateSelectionDisplay();
+      scheduleRedraw();
+    }
+  });
+  moveImgBtn.addEventListener('click', () => {
+    if (selectedType === 'image' && selectedImgIndex >= 0) {
+      showHandles = !showHandles;
+      updateSelectionDisplay();
+      scheduleRedraw();
+    }
+  });
+
+  // Item select dropdown
+  itemSelect.addEventListener('change', (e) => {
+    const value = e.target.value;
+    showHandles = false;
+    transformMode = null;
+    if (!value) {
+      selected = null;
+      selectedImgIndex = -1;
+      selectedType = null;
+      updateSelectionDisplay();
+      scheduleRedraw();
+      return;
+    }
+    const [type, index] = value.split('-');
+    if (type === 'text') {
+      selected = texts[parseInt(index)];
+      selectedType = 'text';
+      selectedImgIndex = -1;
+    } else if (type === 'image') {
+      selectedImgIndex = parseInt(index);
+      selectedType = 'image';
+      selected = null;
+    }
+    updateSelectionDisplay();
+    scheduleRedraw();
   });
 
   // Listeners for selected controls
   selectedColor.addEventListener('input', () => {
     if (selected && selectedType === 'text') {
       selected.color = selectedColor.value;
-      draw();
+      scheduleRedraw();
     }
   });
   selectedFont.addEventListener('change', () => {
     if (selected && selectedType === 'text') {
       selected.font = selectedFont.value;
-      draw();
+      scheduleRedraw();
     }
   });
   textShadow.addEventListener('change', () => {
     if (selected && selectedType === 'text') {
       selected.shadow = textShadow.checked;
-      draw();
+      scheduleRedraw();
     }
   });
 
@@ -476,35 +668,29 @@ document.addEventListener('DOMContentLoaded', () => {
   textZoomIn.addEventListener('click', () => {
     if (selected && selectedType === 'text') {
       selected.scale = clamp(selected.scale * 1.1, 0.1, 8);
-      draw();
+      if (showHandles) updateTextBounds();
+      scheduleRedraw();
     }
   });
   textZoomOut.addEventListener('click', () => {
     if (selected && selectedType === 'text') {
       selected.scale = clamp(selected.scale / 1.1, 0.1, 8);
-      draw();
+      if (showHandles) updateTextBounds();
+      scheduleRedraw();
     }
   });
 
   // Image zoom buttons
   imgZoomIn.addEventListener('click', () => {
-    if (selectedType === 'image') {
-      if (selectedImgIndex >= 0) {
-        images[selectedImgIndex].scale = clamp(images[selectedImgIndex].scale * 1.1, 0.1, 8);
-      } else if (images.length > 0) {
-        images[0].scale = clamp(images[0].scale * 1.1, 0.1, 8);
-      }
-      draw();
+    if (selectedType === 'image' && selectedImgIndex >= 0) {
+      images[selectedImgIndex].scale = clamp(images[selectedImgIndex].scale * 1.1, 0.1, 8);
+      scheduleRedraw();
     }
   });
   imgZoomOut.addEventListener('click', () => {
-    if (selectedType === 'image') {
-      if (selectedImgIndex >= 0) {
-        images[selectedImgIndex].scale = clamp(images[selectedImgIndex].scale / 1.1, 0.1, 8);
-      } else if (images.length > 0) {
-        images[0].scale = clamp(images[0].scale / 1.1, 0.1, 8);
-      }
-      draw();
+    if (selectedType === 'image' && selectedImgIndex >= 0) {
+      images[selectedImgIndex].scale = clamp(images[selectedImgIndex].scale / 1.1, 0.1, 8);
+      scheduleRedraw();
     }
   });
 
@@ -534,27 +720,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Live preview on text input
+  // Debounced live preview on text input
+  let inputTimeout;
   textInput.addEventListener('input', () => {
-    const val = textInput.value;
-    if (val.trim()) {
-      if (!previewText) {
-        previewText = {
-          text: '',
-          x: canvas.width / 2,
-          y: canvas.height / 2,
-          scale: 1,
-          rotation: 0,
-          color: colorInput.value,
-          font: fontSelect.value || defaultFont,
-          shadow: true
-        };
+    clearTimeout(inputTimeout);
+    inputTimeout = setTimeout(() => {
+      const val = textInput.value;
+      if (val.trim()) {
+        if (!previewText) {
+          previewText = {
+            text: '',
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            scale: 1,
+            rotation: 0,
+            color: colorInput.value,
+            font: fontSelect.value || defaultFont,
+            shadow: true
+          };
+        }
+        previewText.text = val;
+      } else {
+        previewText = null;
       }
-      previewText.text = val;
-    } else {
-      previewText = null;
-    }
-    draw();
+      scheduleRedraw();
+    }, 150); // Slightly longer debounce for mobile
   });
 
   // Update preview on color/font change
@@ -564,27 +754,27 @@ document.addEventListener('DOMContentLoaded', () => {
   // Source controls
   sourceInput.addEventListener('input', () => {
     sourceObj.text = sourceInput.value;
-    draw();
+    scheduleRedraw();
   });
   sourceColor.addEventListener('input', () => {
     sourceObj.color = sourceColor.value;
-    draw();
+    scheduleRedraw();
   });
   sourceFont.addEventListener('change', () => {
     sourceObj.font = sourceFont.value;
-    draw();
+    scheduleRedraw();
   });
   sourceShadow.addEventListener('change', () => {
     sourceObj.shadow = sourceShadow.checked;
-    draw();
+    scheduleRedraw();
   });
   sourceZoomIn.addEventListener('click', () => {
     sourceObj.scale = clamp(sourceObj.scale * 1.1, 0.1, 3);
-    draw();
+    scheduleRedraw();
   });
   sourceZoomOut.addEventListener('click', () => {
     sourceObj.scale = clamp(sourceObj.scale / 1.1, 0.1, 3);
-    draw();
+    scheduleRedraw();
   });
 });
 
@@ -652,7 +842,7 @@ function endCrop() {
   cropping = false;
   cropOverlay.style.display = 'none';
   cropPoints = [];
-  draw();
+  scheduleRedraw();
 }
 
 /* ========= Init Canvas ========= */
@@ -661,16 +851,26 @@ frame.onload = () => {
   canvas.width  = frame.width;
   canvas.height = frame.height;
 
-  imgX = canvas.width/2;
-  imgY = canvas.height/2;
-  
+  // Update globals
+  usableWidth = canvas.width - framePadding * 2;
+
   // Set current date in Bengali
   currentDate = getBengaliDate();
-  
-  draw();
+
+  // Optimize frame for mobile
+  if ('createImageBitmap' in window) {
+    createImageBitmap(frame).then(bm => {
+      frameBitmap = bm;
+      scheduleRedraw();
+    }).catch(() => {
+      scheduleRedraw();
+    });
+  } else {
+    scheduleRedraw();
+  }
 };
 
-/* ========= Multiple Image Upload ========= */
+/* ========= Multiple Image Upload with Resize ========= */
 uploader.addEventListener('change', (e) => {
   const files = Array.from(e.target.files || []);
   files.forEach(file => {
@@ -679,31 +879,54 @@ uploader.addEventListener('change', (e) => {
     reader.onload = (ev) => {
       const img = new Image();
       img.onload = () => {
-        const scale = Math.min(canvas.width / img.width * 0.8, canvas.height / img.height * 0.8);
-        images.push({
-          img: img,
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          scale: scale,
-          rotation: 0,
-          croppedData: null
-        });
-        selectedImgIndex = images.length - 1;
-        selectedType = 'image';
-        updateSelectionDisplay();
-        draw();
+        // Resize for mobile performance
+        const quality = isMobile ? 0.6 : 0.8;
+        const resizedSrc = resizeImage(img, canvas.width, canvas.height, quality);
+        const resizedImg = new Image();
+        resizedImg.onload = () => {
+          const scale = Math.min(canvas.width / resizedImg.width * 0.8, canvas.height / resizedImg.height * 0.8);
+          let imgToPush = resizedImg;
+          const pushImage = (finalImg) => {
+            images.push({
+              img: finalImg,
+              x: Math.random() * canvas.width,
+              y: Math.random() * canvas.height,
+              scale: scale,
+              rotation: 0,
+              croppedData: null
+            });
+            selectedImgIndex = images.length - 1;
+            selectedType = 'image';
+            showHandles = false;
+            updateSelectionDisplay();
+            scheduleRedraw();
+          };
+          if ('createImageBitmap' in window) {
+            createImageBitmap(resizedImg).then(bitmap => {
+              imgToPush = bitmap;
+              pushImage(imgToPush);
+            }).catch(() => {
+              pushImage(resizedImg);
+            });
+          } else {
+            pushImage(resizedImg);
+          }
+        };
+        resizedImg.src = resizedSrc;
       };
       img.src = ev.target.result;
     };
     reader.readAsDataURL(file);
   });
+  // Clear input for multiple uploads
+  uploader.value = '';
 });
 
 /* ========= Add Text ========= */
 addTextBtn.addEventListener('click', () => {
   const val = textInput.value.trim();
   if(!val) return;
-  texts.push({
+  const newText = {
     text: val,
     x: canvas.width / 2,
     y: canvas.height / 2,
@@ -712,14 +935,85 @@ addTextBtn.addEventListener('click', () => {
     color: colorInput.value,
     font: fontSelect.value || defaultFont,
     shadow: true
-  });
+  };
+  texts.push(newText);
   previewText = null;
   textInput.value = '';
-  selected = texts[texts.length - 1];
+  selected = newText;
   selectedType = 'text';
+  showHandles = false;
   updateSelectionDisplay();
-  draw();
+  updateTextBounds(); // Update immediately for fast selection
+  scheduleRedraw();
 });
+
+/* ========= Get Wrapped Text Dimensions ========= */
+function getWrappedTextDimensions(tb) {
+  const tempCanvas = document.createElement('canvas');
+  const tempCtx = tempCanvas.getContext('2d');
+  tempCtx.scale(tb.scale, tb.scale);
+  tempCtx.font = `700 ${baseFontPx}px "${tb.font}"`;
+  const maxLocal = usableWidth / tb.scale;
+  const words = tb.text.split(' ');
+  let line = '';
+  let lines = [];
+  let maxLocalWidth = 0;
+
+  for (let i = 0; i < words.length; i++) {
+    const test = line + words[i] + ' ';
+    if (tempCtx.measureText(test).width > maxLocal && i > 0) {
+      if (line.trim().length) {
+        const w = tempCtx.measureText(line).width;
+        maxLocalWidth = Math.max(maxLocalWidth, w);
+        lines.push(line);
+        line = words[i] + ' ';
+      } else {
+        // very long single "word" -> break by chars
+        let piece = '';
+        for (const ch of words[i] + ' ') {
+          if (tempCtx.measureText(piece + ch).width > maxLocal) {
+            const w = tempCtx.measureText(piece).width;
+            maxLocalWidth = Math.max(maxLocalWidth, w);
+            lines.push(piece);
+            piece = ch;
+          } else {
+            piece += ch;
+          }
+        }
+        const w = tempCtx.measureText(piece).width;
+        maxLocalWidth = Math.max(maxLocalWidth, w);
+        lines.push(piece);
+        line = '';
+      }
+    } else {
+      line = test;
+    }
+  }
+  if (line.trim().length) {
+    const w = tempCtx.measureText(line).width;
+    maxLocalWidth = Math.max(maxLocalWidth, w);
+    lines.push(line);
+  }
+
+  const width = maxLocalWidth * tb.scale;
+  const height = lines.length * baseLineH;
+  return { width, height };
+}
+
+/* ========= Cache Text Bounds ========= */
+function updateTextBounds() {
+  textBounds = [];
+  texts.forEach((tb, index) => {
+    const dims = getWrappedTextDimensions(tb);
+    textBounds.push({
+      index,
+      x: tb.x - dims.width / 2,
+      y: tb.y - dims.height / 2,
+      width: dims.width,
+      height: dims.height
+    });
+  });
+}
 
 /* ========= Text wrapping that respects scale (keeps inside frame) ========= */
 function wrapTextScaled(ctx, text, x, y, maxWidthWorld, lineHeightWorld, scale){
@@ -738,7 +1032,7 @@ function wrapTextScaled(ctx, text, x, y, maxWidthWorld, lineHeightWorld, scale){
 
   function drawLine(str){
     ctx.fillText(str, x, cursorY);
-    cursorY += lineHeightWorld; // move in world units (since context scaled)
+    cursorY += lhLocal; // Fixed: use lhLocal
   }
 
   for(let i=0;i<words.length;i++){
@@ -785,7 +1079,11 @@ function draw(){
   });
 
   // Frame overlay
-  ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
+  ctx.drawImage(frameBitmap || frame, 0, 0, canvas.width, canvas.height);
+  
+  // Mobile optimized shadow blur
+  const textShadowBlur = isMobile ? 2 : 4;
+  const sourceShadowBlur = isMobile ? 3 : 6;
   
   // Draw date (top left) - Using default Bangla font
   if (currentDate) {
@@ -795,7 +1093,7 @@ function draw(){
     ctx.fillStyle = '#ffffff';
     ctx.font = `bold 35px "${defaultFont}"`;
     ctx.shadowColor = 'rgba(0,0,0,.65)';
-    ctx.shadowBlur = 4;
+    ctx.shadowBlur = textShadowBlur;
     ctx.fillText(currentDate, 30, 30);
     ctx.restore();
   }
@@ -809,7 +1107,7 @@ function draw(){
     ctx.font = `bold ${35 * sourceObj.scale}px "${sourceObj.font}"`;
     if (sourceObj.shadow !== false) {
       ctx.shadowColor = 'rgba(0,0,0,.65)';
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = sourceShadowBlur;
     } else {
       ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
@@ -819,11 +1117,6 @@ function draw(){
   }
 
   // Texts
-  const framePadding = 40;           
-  const usableWidth  = canvas.width - framePadding * 2;
-  const baseFontPx   = 34;           
-  const baseLineH    = 40;           
-
   texts.forEach(tb => {
     ctx.save();
     ctx.translate(tb.x, tb.y);
@@ -834,7 +1127,7 @@ function draw(){
     ctx.fillStyle = tb.color;
     if (tb.shadow !== false) {
       ctx.shadowColor = 'rgba(0,0,0,.65)';
-      ctx.shadowBlur = 8;
+      ctx.shadowBlur = textShadowBlur;
     } else {
       ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
@@ -857,7 +1150,7 @@ function draw(){
     ctx.fillStyle = previewText.color;
     if (previewText.shadow !== false) {
       ctx.shadowColor = 'rgba(0,0,0,.65)';
-      ctx.shadowBlur = 8;
+      ctx.shadowBlur = textShadowBlur;
     } else {
       ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
@@ -868,82 +1161,231 @@ function draw(){
     ctx.restore();
   }
 
+  // Free transform handles
+  if (showHandles && selectedType) {
+    let obj, isText, halfWW, halfWH, unscaledW, unscaledH, s;
+    if (selectedType === 'text') {
+      obj = selected;
+      isText = true;
+      const dims = getWrappedTextDimensions(obj);
+      halfWW = dims.width / 2;
+      halfWH = dims.height / 2;
+      s = obj.scale;
+      unscaledW = dims.width / s;
+      unscaledH = dims.height / s;
+    } else {
+      obj = images[selectedImgIndex];
+      isText = false;
+      const iw = obj.img.width;
+      const ih = obj.img.height;
+      halfWW = iw * obj.scale / 2;
+      halfWH = ih * obj.scale / 2;
+      s = obj.scale;
+      unscaledW = iw;
+      unscaledH = ih;
+    }
+    ctx.save();
+    ctx.translate(obj.x, obj.y);
+    ctx.rotate(obj.rotation);
+    // bbox
+    ctx.strokeStyle = 'rgba(110,168,254,0.8)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-halfWW, -halfWH, 2 * halfWW, 2 * halfWH);
+    // corners
+    ctx.fillStyle = 'rgba(110,168,254,0.9)';
+    const hR = 6;
+    const corners = [
+      [-halfWW, -halfWH],
+      [halfWW, -halfWH],
+      [halfWW, halfWH],
+      [-halfWW, halfWH]
+    ];
+    corners.forEach(([cx, cy]) => {
+      ctx.beginPath();
+      ctx.arc(cx, cy, hR, 0, 2 * Math.PI);
+      ctx.fill();
+    });
+    // rotation handle
+    const rotX = 0;
+    const rotY = -halfWH - rotOffset;
+    ctx.strokeStyle = 'rgba(110,168,254,0.6)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, -halfWH);
+    ctx.lineTo(rotX, rotY);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(110,168,254,0.9)';
+    ctx.beginPath();
+    ctx.arc(rotX, rotY, hR, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.restore();
+  }
+
   // Update selection display after draw
   updateSelectionDisplay();
+  updateTextBounds(); // Cache bounds after drawing texts
 }
 
-/* ========= Selection hit test for images ========= */
-function imageHit(imgObj, p) {
-  const w = imgObj.img.width * imgObj.scale;
-  const h = imgObj.img.height * imgObj.scale;
-  return (p.x > imgObj.x - w/2 && p.x < imgObj.x + w/2 &&
-          p.y > imgObj.y - h/2 && p.y < imgObj.y + h/2);
-}
-
-/* ========= Selection hit test for text ========= */
-function textHit(tb, p){
-  ctx.save();
-  ctx.font = `700 34px "${tb.font}"`;
-  const width = ctx.measureText(tb.text).width * tb.scale;
-  ctx.restore();
-  const halfH = 36 * tb.scale;
-  return (p.x > tb.x - width/2 && p.x < tb.x + width/2 &&
-          p.y > tb.y - halfH && p.y < tb.y + halfH);
-}
-
-/* ========= Pointer (mouse/pen) drag ========= */
+/* ========= Pointer Events ========= */
 canvas.addEventListener('pointerdown', (e) => {
   const p = deviceToCanvas(e.clientX, e.clientY);
-  selected = null;
-  selectedType = null;
-
-  // Hit test images from topmost
-  for(let i = images.length-1; i>=0; i--){
-    if(imageHit(images[i], p)){
-      selectedImgIndex = i;
-      selectedType = 'image';
-      draggingSelectedImg = true;
-      dragSelectedStart = p;
-      draw();
-      return;
+  let hitSomething = false;
+  if (showHandles && selectedType) {
+    const isText = selectedType === 'text';
+    const obj = isText ? selected : images[selectedImgIndex];
+    const s = obj.scale;
+    const th = obj.rotation;
+    const cos = Math.cos(th);
+    const sin = Math.sin(th);
+    let dx = p.x - obj.x;
+    let dy = p.y - obj.y;
+    let itx = cos * dx + sin * dy;
+    let ity = -sin * dx + cos * dy;
+    let local_x = itx / s;
+    let local_y = ity / s;
+    const unscaled = getUnscaledDims(obj, isText);
+    const halfUnW = unscaled.width / 2;
+    const halfUnH = unscaled.height / 2;
+    const localHR = handleRadius / s;
+    // rotation handle
+    const localOffset = rotOffset / s;
+    const lrx = 0;
+    const lry = -halfUnH - localOffset;
+    let distRot = Math.hypot(local_x - lrx, local_y - lry);
+    if (distRot < localHR) {
+      transformMode = 'rotate';
+      prevAngle = Math.atan2(local_y, local_x);
+      currentObj = obj;
+      isCurrentText = isText;
+      hitSomething = true;
+    } else {
+      // corners for scale
+      const corners = [
+        {lx: -halfUnW, ly: -halfUnH},
+        {lx: halfUnW, ly: -halfUnH},
+        {lx: halfUnW, ly: halfUnH},
+        {lx: -halfUnW, ly: halfUnH}
+      ];
+      for (let corner of corners) {
+        let d = Math.hypot(local_x - corner.lx, local_y - corner.ly);
+        if (d < localHR) {
+          transformMode = 'scale';
+          startScale = obj.scale;
+          startRadial = Math.hypot(local_x, local_y);
+          currentObj = obj;
+          isCurrentText = isText;
+          hitSomething = true;
+          break;
+        }
+      }
+    }
+    if (!hitSomething) {
+      // inside for move
+      if (Math.abs(local_x) < halfUnW && Math.abs(local_y) < halfUnH) {
+        transformMode = 'move';
+        dragStartX = p.x;
+        dragStartY = p.y;
+        startObjX = obj.x;
+        startObjY = obj.y;
+        currentObj = obj;
+        isCurrentText = isText;
+        hitSomething = true;
+      }
     }
   }
-  // Hit test texts from topmost
-  for(let i = texts.length-1; i>=0; i--){
-    if(textHit(texts[i], p)){
-      selected = texts[i];
-      selectedType = 'text';
-      draggingText = true;
-      dragTextStart = p;
-      draw();
-      return;
+  if (!hitSomething) {
+    // deselect
+    selected = null;
+    selectedType = null;
+    selectedImgIndex = -1;
+    showHandles = false;
+    transformMode = null;
+    currentObj = null;
+    // check for new selection
+    for (let i = texts.length - 1; i >= 0; i--) {
+      if (isPointInObject(p, texts[i], true)) {
+        selected = texts[i];
+        selectedType = 'text';
+        selectedImgIndex = -1;
+        transformMode = 'move';
+        dragStartX = p.x;
+        dragStartY = p.y;
+        startObjX = selected.x;
+        startObjY = selected.y;
+        currentObj = selected;
+        isCurrentText = true;
+        showHandles = false;
+        hitSomething = true;
+        break;
+      }
+    }
+    if (!hitSomething) {
+      for (let i = images.length - 1; i >= 0; i--) {
+        if (isPointInObject(p, images[i], false)) {
+          selectedImgIndex = i;
+          selectedType = 'image';
+          selected = null;
+          transformMode = 'move';
+          dragStartX = p.x;
+          dragStartY = p.y;
+          startObjX = images[i].x;
+          startObjY = images[i].y;
+          currentObj = images[i];
+          isCurrentText = false;
+          showHandles = false;
+          hitSomething = true;
+          break;
+        }
+      }
     }
   }
-  // Else drag background or nothing
-  draw();
+  if (hitSomething) {
+    updateSelectionDisplay();
+  }
+  scheduleRedraw();
+  e.preventDefault();
 });
 
 canvas.addEventListener('pointermove', (e) => {
-  if(draggingSelectedImg && selectedType === 'image' && selectedImgIndex >= 0){
-    const p = deviceToCanvas(e.clientX, e.clientY);
-    images[selectedImgIndex].x += (p.x - dragSelectedStart.x);
-    images[selectedImgIndex].y += (p.y - dragSelectedStart.y);
-    dragSelectedStart = p;
-    draw();
-  } else if(draggingText && selected && selectedType === 'text'){
-    const p = deviceToCanvas(e.clientX, e.clientY);
-    selected.x += (p.x - dragTextStart.x);
-    selected.y += (p.y - dragTextStart.y);
-    dragTextStart = p;
-    draw();
+  if (!transformMode || !currentObj) return;
+  const isText = isCurrentText;
+  const currentP = deviceToCanvas(e.clientX, e.clientY);
+  const s = currentObj.scale;
+  const th = currentObj.rotation;
+  const cos = Math.cos(th);
+  const sin = Math.sin(th);
+  let dx = currentP.x - currentObj.x;
+  let dy = currentP.y - currentObj.y;
+  let itx = cos * dx + sin * dy;
+  let ity = -sin * dx + cos * dy;
+  let local_x = itx / s;
+  let local_y = ity / s;
+  if (transformMode === 'move') {
+    const delX = currentP.x - dragStartX;
+    const delY = currentP.y - dragStartY;
+    currentObj.x = startObjX + delX;
+    currentObj.y = startObjY + delY;
+  } else if (transformMode === 'scale') {
+    const currentRadial = Math.hypot(local_x, local_y);
+    let newScale = startScale * (currentRadial / startRadial);
+    newScale = clamp(newScale, 0.1, 8);
+    currentObj.scale = newScale;
+    if (isText) updateTextBounds();
+  } else if (transformMode === 'rotate') {
+    const currentAngle = Math.atan2(local_y, local_x);
+    const delta = currentAngle - prevAngle;
+    currentObj.rotation += delta;
+    prevAngle = currentAngle;
   }
+  scheduleRedraw();
 });
 
-['pointerup','pointerleave','pointercancel'].forEach(ev=>{
+['pointerup','pointerleave','pointercancel'].forEach(ev => {
   canvas.addEventListener(ev, () => { 
-    draggingSelectedImg = false; 
-    draggingText=false; 
-    draw();
+    transformMode = null;
+    currentObj = null;
+    isCurrentText = false;
+    scheduleRedraw();
   });
 });
 
@@ -958,22 +1400,22 @@ canvas.addEventListener('touchstart', (e) => {
 
     // Decide target based on pinch center
     pinchTarget = 'background';
-    // try hit image
-    for(let i=images.length-1;i>=0;i--){
-      if(imageHit(images[i], {x:cx, y:cy})){
-        pinchTarget = 'selectedImg';
-        selectedImgIndex = i;
-        selectedType = 'image';
+    // try hit text first (since on top)
+    for(let i=texts.length-1;i>=0;i--){
+      if(isPointInObject({x:cx,y:cy}, texts[i], true)){
+        pinchTarget = 'text';
+        selected = texts[i];
+        selectedType = 'text';
         break;
       }
     }
-    // try hit text
+    // try hit image
     if (pinchTarget === 'background') {
-      for(let i=texts.length-1;i>=0;i--){
-        if(textHit(texts[i], {x:cx, y:cy})){
-          pinchTarget = 'text';
-          selected = texts[i];
-          selectedType = 'text';
+      for(let i=images.length-1;i>=0;i--){
+        if(isPointInObject({x:cx,y:cy}, images[i], false)){
+          pinchTarget = 'selectedImg';
+          selectedImgIndex = i;
+          selectedType = 'image';
           break;
         }
       }
@@ -990,7 +1432,8 @@ canvas.addEventListener('touchstart', (e) => {
       pinchCenter = {x:cx, y:cy};
       imgOffsetFromCenter = { x: 0, y: 0 };
     }
-    draw();
+    updateSelectionDisplay();
+    scheduleRedraw();
   }
 }, {passive:false});
 
@@ -1004,11 +1447,12 @@ canvas.addEventListener('touchmove', (e) => {
   if(pinchTarget === 'text' && selectedType === 'text' && selected){
     const factor = dist / textPinchStartDist;
     selected.scale = clamp(textPinchStartScale * factor, 0.1, 8);
-    draw();
+    updateTextBounds();
+    scheduleRedraw();
   } else if (pinchTarget === 'selectedImg' && selectedType === 'image' && selectedImgIndex >= 0) {
     const factor = dist / selectedImgPinchStartDist;
     images[selectedImgIndex].scale = clamp(selectedImgPinchStartScale * factor, 0.1, 8);
-    draw();
+    scheduleRedraw();
   } else if (pinchTarget === 'background') {
     // No action for background pinch
   }
@@ -1018,19 +1462,21 @@ canvas.addEventListener('touchmove', (e) => {
 zoomInBtn.addEventListener('click', () => {
   if(selectedType === 'text' && selected){ 
     selected.scale = clamp(selected.scale * 1.1, 0.1, 8); 
+    updateTextBounds();
   } else if (selectedType === 'image' && selectedImgIndex >= 0) { 
     images[selectedImgIndex].scale = clamp(images[selectedImgIndex].scale * 1.1, 0.1, 8); 
   }
-  draw();
+  scheduleRedraw();
 });
 
 zoomOutBtn.addEventListener('click', () => {
   if(selectedType === 'text' && selected){ 
     selected.scale = clamp(selected.scale / 1.1, 0.1, 8); 
+    updateTextBounds();
   } else if (selectedType === 'image' && selectedImgIndex >= 0) { 
     images[selectedImgIndex].scale = clamp(images[selectedImgIndex].scale / 1.1, 0.1, 8); 
   }
-  draw();
+  scheduleRedraw();
 });
 
 function updateZoomLabel(){
@@ -1043,7 +1489,8 @@ editBtn.addEventListener('click', () => {
   const t = prompt('Edit text:', selected.text);
   if(t !== null){
     selected.text = t;
-    draw();
+    updateTextBounds(); // Update bounds after edit
+    scheduleRedraw();
   }
 });
 delBtn.addEventListener('click', () => {
@@ -1052,7 +1499,9 @@ delBtn.addEventListener('click', () => {
     texts = texts.filter(tb => tb !== selected);
     selected = null;
     selectedType = null;
-    draw();
+    showHandles = false;
+    updateTextBounds(); // Update after delete
+    scheduleRedraw();
   }
 });
 
@@ -1060,7 +1509,7 @@ delBtn.addEventListener('click', () => {
 downloadBtn.addEventListener('click', () => {
   const a = document.createElement('a');
   a.download = 'poster.png';
-  a.href = canvas.toDataURL('image/png');
+  a.href = canvas.toDataURL('image/png', 0.9); // Slight compression
   a.click();
 });
 </script>
