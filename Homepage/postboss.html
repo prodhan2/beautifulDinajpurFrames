@@ -324,7 +324,7 @@ let lastDrawTime = 0;
 const framePadding = 40;           
 let usableWidth  = 0; // Set after canvas size
 const baseFontPx   = 34;           
-const baseLineH    = 40;           
+const baseLineH    = 50;           
 let MIN_REDRAW_INTERVAL = 16; // ~60fps
 const handleRadius = 8;
 const rotOffset = 40;
@@ -354,22 +354,35 @@ function getUnscaledDims(obj, isText) {
   }
 }
 
-/* ========= Point in Object (with rotation and scale) ========= */
+/* ========= Point in Object (with rotation and scale) for images ========= */
 function isPointInObject(p, obj, isText) {
-  const s = obj.scale;
-  const th = obj.rotation;
-  const cos = Math.cos(th);
-  const sin = Math.sin(th);
-  let dx = p.x - obj.x;
-  let dy = p.y - obj.y;
-  let itx = cos * dx + sin * dy;
-  let ity = -sin * dx + cos * dy;
-  let local_x = itx / s;
-  let local_y = ity / s;
-  let unscaled = getUnscaledDims(obj, isText);
-  let halfUnW = unscaled.width / 2;
-  let halfUnH = unscaled.height / 2;
-  return Math.abs(local_x) <= halfUnW && Math.abs(local_y) <= halfUnH;
+  if (isText) {
+    // For text, use cached bounds for faster hit test
+    const index = texts.indexOf(obj);
+    if (index === -1) return false;
+    const bound = textBounds[index];
+    if (!bound) return false;
+    // For rotated text, the bounds are axis-aligned, so approximate hit test
+    // To be more accurate, we could transform the point, but for simplicity use AABB
+    return (p.x > bound.x && p.x < bound.x + bound.width &&
+            p.y > bound.y && p.y < bound.y + bound.height);
+  } else {
+    // For images, full transform
+    const s = obj.scale;
+    const th = obj.rotation;
+    const cos = Math.cos(th);
+    const sin = Math.sin(th);
+    let dx = p.x - obj.x;
+    let dy = p.y - obj.y;
+    let itx = cos * dx + sin * dy;
+    let ity = -sin * dx + cos * dy;
+    let local_x = itx / s;
+    let local_y = ity / s;
+    let unscaled = getUnscaledDims(obj, false);
+    let halfUnW = unscaled.width / 2;
+    let halfUnH = unscaled.height / 2;
+    return Math.abs(local_x) <= halfUnW && Math.abs(local_y) <= halfUnH;
+  }
 }
 
 /* ========= Image Resize for Mobile ========= */
@@ -567,7 +580,7 @@ function getBengaliDate() {
   // Bengali month names
   const bengaliMonths = [
     'জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন',
-    'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বার'
+    'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'
   ];
   
   // Convert numbers to Bengali digits
@@ -1032,7 +1045,7 @@ function wrapTextScaled(ctx, text, x, y, maxWidthWorld, lineHeightWorld, scale){
 
   function drawLine(str){
     ctx.fillText(str, x, cursorY);
-    cursorY += lhLocal; // Fixed: use lhLocal
+    cursorY += lhLocal;
   }
 
   for(let i=0;i<words.length;i++){
@@ -1301,9 +1314,11 @@ canvas.addEventListener('pointerdown', (e) => {
     showHandles = false;
     transformMode = null;
     currentObj = null;
-    // check for new selection
+    // check for new selection - texts first using cached bounds
     for (let i = texts.length - 1; i >= 0; i--) {
-      if (isPointInObject(p, texts[i], true)) {
+      const bound = textBounds[i];
+      if (bound && p.x > bound.x && p.x < bound.x + bound.width &&
+          p.y > bound.y && p.y < bound.y + bound.height) {
         selected = texts[i];
         selectedType = 'text';
         selectedImgIndex = -1;
@@ -1320,6 +1335,7 @@ canvas.addEventListener('pointerdown', (e) => {
       }
     }
     if (!hitSomething) {
+      // images
       for (let i = images.length - 1; i >= 0; i--) {
         if (isPointInObject(p, images[i], false)) {
           selectedImgIndex = i;
@@ -1402,7 +1418,9 @@ canvas.addEventListener('touchstart', (e) => {
     pinchTarget = 'background';
     // try hit text first (since on top)
     for(let i=texts.length-1;i>=0;i--){
-      if(isPointInObject({x:cx,y:cy}, texts[i], true)){
+      const bound = textBounds[i];
+      if (bound && cx > bound.x && cx < bound.x + bound.width &&
+          cy > bound.y && cy < bound.y + bound.height) {
         pinchTarget = 'text';
         selected = texts[i];
         selectedType = 'text';
