@@ -89,11 +89,11 @@
     -webkit-tap-highlight-color: transparent;
   }
   #controls button.primary{ background:var(--accent); color:#0b1020; font-weight:700; }
-  #colorGroup, #sourceGroup {
+  #sourceGroup {
     display:flex; flex-wrap:wrap; gap:6px; align-items:center;
   }
-  #colorGroup input[type="color"], #sourceGroup input[type="color"] { flex:1; padding:4px; min-width:60px; }
-  #colorGroup select, #sourceGroup select { flex:2; min-width:100px; }
+  #sourceGroup input[type="color"] { flex:1; padding:4px; min-width:60px; }
+  #sourceGroup select { flex:2; min-width:100px; }
   #sourceGroup .small-btn {
     padding:4px 6px; font-size:12px; min-width:30px;
   }
@@ -105,6 +105,12 @@
   }
   .row input[type="file"], .row select {
     flex: 1; min-width:120px;
+  }
+  .headline-row {
+    display: flex; gap: 6px; align-items: center; flex-wrap:wrap;
+  }
+  .headline-row input[type="text"] {
+    flex: 1; min-width: 120px;
   }
   /* Bottom controls - Slightly compact */
   #bottom-controls{
@@ -142,8 +148,8 @@
     #app { padding: 4px; gap: 4px; }
     #controls { padding: 4px; gap: 4px; }
     #bottom-controls { padding: 4px; gap: 4px; }
-    #colorGroup, #sourceGroup { flex-direction: column; align-items: stretch; }
-    .row { flex-direction: column; align-items: stretch; }
+    #sourceGroup { flex-direction: column; align-items: stretch; }
+    .row, .headline-row { flex-direction: column; align-items: stretch; }
     .btn, #controls input[type="file"], #controls input[type="text"], #controls select, #itemSelect { font-size: 16px; padding: 12px; min-height: 48px; }
     #sourceGroup .small-btn { min-width: 40px; min-height: 40px; }
     #textIcons, #imageIcons { gap: 2px; }
@@ -194,12 +200,9 @@
           <option value="">কোন আইটেম সিলেক্ট করুন</option>
         </select>
       </div>
-      <input type="text" id="textInput" placeholder="টেক্সট লিখুন (headline / caption)" />
-      <div id="colorGroup">
-        <input type="color" id="colorInput" value="#ffffff" />
-        <select id="fontSelect">
-          <option value="sans-serif">Loading fonts...</option>
-        </select>
+      <div class="headline-row">
+        <input type="text" id="textInput" placeholder="টেক্সট লিখুন (headline / caption)" />
+        <button id="addText" class="primary">+ Add Text</button>
       </div>
       <input type="text" id="sourceInput" placeholder="তথ্যসূত্র লিখুন (উৎস)" />
       <div id="sourceGroup">
@@ -211,7 +214,6 @@
         <button id="sourceZoomOut" class="small-btn" title="Source Zoom Out">–</button>
         <button id="sourceZoomIn" class="small-btn" title="Source Zoom In">+</button>
       </div>
-      <button id="addText" class="primary">+ Add Text</button>
     </div>
 
     <!-- Bottom bar -->
@@ -235,7 +237,6 @@ const cropCtx = cropCanvas.getContext('2d');
 const uploader   = document.getElementById('uploader');
 const textInput  = document.getElementById('textInput');
 const sourceInput = document.getElementById('sourceInput');
-const colorInput = document.getElementById('colorInput');
 const fontSelect = document.getElementById('fontSelect');
 const addTextBtn = document.getElementById('addText');
 const sourceColor = document.getElementById('sourceColor');
@@ -289,6 +290,7 @@ let selectedType = null; // 'text' or 'image'
 let currentDate = '';
 let sourceObj = { text: '', color: '#ffffff', font: 'sans-serif', shadow: true, scale: 1 };
 let defaultFont = 'sans-serif'; // Will be set after fonts load
+let defaultHeadlineColor = '#ffffff'; // Default color for headlines
 
 /* Interaction state */
 let selectedImgIndex = -1;
@@ -484,8 +486,8 @@ function updateItemSelectOptions() {
 /* ========= Update Preview ========= */
 function updatePreview() {
   if (previewText) {
-    previewText.color = colorInput.value;
-    previewText.font = fontSelect.value || defaultFont;
+    previewText.color = defaultHeadlineColor;
+    previewText.font = defaultFont;
     scheduleRedraw();
   }
 }
@@ -546,7 +548,7 @@ async function loadFonts() {
   style.textContent = css;
   document.head.appendChild(style);
 
-  // Populate select dropdowns
+  // Populate select dropdowns (only for source and selected)
   const options = ['<option value="sans-serif">Sans-serif</option>'];
   files.forEach(filename => {
     const fontFamily = filename.replace(/\.TTF$/i, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'unknown';
@@ -554,14 +556,12 @@ async function loadFonts() {
     options.push(`<option value="${fontFamily}">${displayName}</option>`);
   });
   const optHtml = options.join('');
-  fontSelect.innerHTML = optHtml;
   selectedFont.innerHTML = optHtml;
   sourceFont.innerHTML = optHtml;
 
   // Set default font to first one
   if (files.length > 0) {
     defaultFont = files[0].replace(/\.TTF$/i, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'sans-serif';
-    fontSelect.value = defaultFont;
     selectedFont.value = defaultFont;
     sourceFont.value = defaultFont;
     sourceObj.font = defaultFont;
@@ -747,8 +747,8 @@ document.addEventListener('DOMContentLoaded', () => {
             y: canvas.height / 2,
             scale: 1,
             rotation: 0,
-            color: colorInput.value,
-            font: fontSelect.value || defaultFont,
+            color: defaultHeadlineColor,
+            font: defaultFont,
             shadow: true
           };
         }
@@ -760,8 +760,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 150); // Slightly longer debounce for mobile
   });
 
-  // Update preview on color/font change
-  colorInput.addEventListener('input', updatePreview);
+  // Update preview on font change (color is now default)
   fontSelect.addEventListener('change', updatePreview);
 
   // Source controls
@@ -945,8 +944,8 @@ addTextBtn.addEventListener('click', () => {
     y: canvas.height / 2,
     scale: 1,
     rotation: 0,
-    color: colorInput.value,
-    font: fontSelect.value || defaultFont,
+    color: defaultHeadlineColor,
+    font: defaultFont,
     shadow: true
   };
   texts.push(newText);
