@@ -136,7 +136,7 @@
   #selectedBadge{
     position:absolute; left:50%; top:8px; transform:translateX(-50%);
     background:rgba(110,168,254,.18); color:#cfe0ff;
-    padding:6px 12px; border-radius:999px; font-size:13px;
+    padding:12px 12px; border-radius:999px; font-size:13px;
     pointer-events:none; display:none; z-index:4;
   }
   /* Source input */
@@ -572,7 +572,7 @@ async function loadFonts() {
 
 /* ========= Bengali Date Functions ========= */
 function getBengaliDate() {
-  const now = new Date('2025-10-18'); // Use provided date
+  const now = new Date(); // Use current date
   const day = now.getDate();
   const month = now.getMonth();
   const year = now.getFullYear();
@@ -761,12 +761,17 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Update preview on font change (color is now default)
-  fontSelect.addEventListener('change', updatePreview);
+  // No fontSelect for headline, so no listener
 
-  // Source controls
+  // Source controls - automatic add to footer right
+  let sourceTextInputTimeout;
   sourceInput.addEventListener('input', () => {
-    sourceObj.text = sourceInput.value;
-    scheduleRedraw();
+    clearTimeout(sourceTextInputTimeout);
+    sourceTextInputTimeout = setTimeout(() => {
+      const val = sourceInput.value.trim();
+      sourceObj.text = val;
+      scheduleRedraw();
+    }, 150);
   });
   sourceColor.addEventListener('input', () => {
     sourceObj.color = sourceColor.value;
@@ -963,7 +968,6 @@ addTextBtn.addEventListener('click', () => {
 function getWrappedTextDimensions(tb) {
   const tempCanvas = document.createElement('canvas');
   const tempCtx = tempCanvas.getContext('2d');
-  tempCtx.scale(tb.scale, tb.scale);
   tempCtx.font = `700 ${baseFontPx}px "${tb.font}"`;
   const maxLocal = usableWidth / tb.scale;
   const words = tb.text.split(' ');
@@ -1008,7 +1012,7 @@ function getWrappedTextDimensions(tb) {
   }
 
   const width = maxLocalWidth * tb.scale;
-  const height = lines.length * baseLineH;
+  const height = lines.length * baseLineH * tb.scale;
   return { width, height };
 }
 
@@ -1110,7 +1114,7 @@ function draw(){
     ctx.restore();
   }
   
-  // Draw source (top right) - Using sourceObj
+  // Draw source (footer right) - Using sourceObj
   if (sourceObj.text) {
     ctx.save();
     ctx.textAlign = 'right';
@@ -1124,7 +1128,7 @@ function draw(){
       ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
     }
-    ctx.fillText('তথ্যসূত্র: ' + sourceObj.text, canvas.width - 30, canvas.height - 110);
+    ctx.fillText('সোর্স: ' + sourceObj.text, canvas.width - 30, canvas.height - 110);
     ctx.restore();
   }
 
