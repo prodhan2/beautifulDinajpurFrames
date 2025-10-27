@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>রক্তদাতা কার্ড জেনারেটর</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: 'Bornomala';
+            src: url('bornomala.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        body {
+            font-family: 'Bornomala', Arial, sans-serif;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #d32f2f;
+            font-family: 'Bornomala', Arial, sans-serif;
+        }
+        .card-preview {
+            position: relative;
+            overflow: hidden;
+            background: white;
+            border: 2px solid #d32f2f;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            font-family: 'Bornomala', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+        }
+        .card-preview::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('watermark.png') no-repeat center;
+            background-size: 50% 100%;
+            opacity: 0.1;
+            z-index: 0;
+        }
+        .floating-logo {
+            position: absolute;
+            top: 70px;
+            right: 20px;
+            z-index: 2;
+            width: 100px;
+            height: auto;
+            pointer-events: none;
+        }
+        .card-content-wrapper {
+            position: relative;
+            z-index: 1;
+            opacity: 0.5;
+            transition: opacity 0.3s;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .card-preview.filled .card-content-wrapper {
+            opacity: 1;
+        }
+        .card-header {
+            background-color: #d32f2f;
+            color: white;
+            text-align: center;
+            padding: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            font-family: 'Bornomala', Arial, sans-serif;
+            flex-shrink: 0;
+        }
+        .card-content {
+            display: flex;
+            padding: 20px;
+            flex: 1;
+            align-items: flex-start;
+        }
+        .card-left {
+            flex: 0 0 350px;
+            margin-right: 30px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .left-images {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 10px;
+        }
+        .card-left img.blood-logo {
+            width: 150px;
+            height: 150px;
+            object-fit: contain;
+        }
+        .user-photo {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #d32f2f;
+        }
+        .user-photo.empty {
+            background-color: #f0f0f0;
+            border: 3px solid #ccc;
+        }
+        .blood-group-logo {
+            margin-top: 10px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #d32f2f;
+            text-transform: uppercase;
+            text-align: center;
+        }
+        .blood-group-logo.empty {
+            color: #ccc;
+        }
+        .card-right {
+            flex: 1;
+            font-size: 20px;
+        }
+        .card-right p {
+            margin: 10px 0;
+            font-weight: bold;
+            word-wrap: break-word;
+        }
+        .card-right p.empty {
+            color: #ccc;
+        }
+        .card-date {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px 5px;
+            font-size: 14px;
+            color: #666;
+            font-family: 'Bornomala', Arial, sans-serif;
+            flex-shrink: 0;
+            background-color: #f5f5f5;
+            border-top: 1px solid #e57979;
+        }
+        .date-left {
+            text-align: left;
+            flex: 1;
+        }
+        .producer-right {
+            text-align: right;
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .card-footer {
+            width: 100%;
+            background-color: #f5f5f5;
+            text-align: center;
+            padding: 10px;
+            font-size: 16px;
+            color: #666;
+            font-family: 'Bornomala', Arial, sans-serif;
+            flex-shrink: 0;
+            z-index: 3;
+        }
+        .form-input {
+            font-family: 'Bornomala', Arial, sans-serif;
+        }
+        .btn-custom {
+            background-color: #d32f2f;
+            border-color: #d32f2f;
+            font-family: 'Bornomala', Arial, sans-serif;
+        }
+        .btn-custom:hover {
+            background-color: #b71c1c;
+            border-color: #b71c1c;
+        }
+        .btn-custom:disabled {
+            background-color: #ccc;
+            border-color: #ccc;
+            cursor: not-allowed;
+        }
+        /* Desktop */
+        @media (min-width: 1201px) {
+            .card-preview {
+                width: 1080px;
+                height: 566px;
+            }
+            .floating-logo {
+                width: 120px;
+                top: 70px;
+                right: 30px;
+            }
+            .card-left {
+                flex: 0 0 400px;
+            }
+            .left-images {
+                gap: 30px;
+            }
+            .card-left img.blood-logo {
+                width: 200px;
+                height: 200px;
+            }
+            .user-photo {
+                width: 120px;
+                height: 120px;
+            }
+            .blood-group-logo {
+                font-size: 32px;
+            }
+        }
+        /* Tablet and large mobile */
+        @media (max-width: 1200px) {
+            .card-preview {
+                width: 100%;
+                max-width: 800px;
+                height: auto;
+                min-height: 400px;
+            }
+            .card-content {
+                padding: 15px;
+            }
+            .card-left {
+                flex: 0 0 250px;
+                margin-right: 20px;
+            }
+            .left-images {
+                gap: 15px;
+            }
+            .card-left img.blood-logo {
+                width: 200px;
+                height: 200px;
+            }
+          .user-photo {
+  width: 120px;   /* আগে ছিল 70px */
+  height: 120px;  /* আগে ছিল 70px */
+  border-radius: 20%; /* চাইলে গোল করতে পারো */
+  object-fit: cover;  /* ছবিটা সুন্দরভাবে ফিট করবে */
+}
+
+            .blood-group-logo {
+                font-size: 20px;
+            }
+            .card-right {
+                font-size: 16px;
+            }
+            .card-header {
+                font-size: 20px;
+                padding: 12px;
+            }
+            .card-date {
+                font-size: 12px;
+                padding: 0 15px 3px;
+            }
+            .card-footer {
+                font-size: 14px;
+                padding: 8px;
+            }
+            .floating-logo {
+                width: 80px;
+                top: 55px;
+                right: 15px;
+            }
+        }
+        /* Small mobile */
+        @media (max-width: 576px) {
+            .card-preview {
+                max-width: 100%;
+                min-height: 300px;
+                border-radius: 8px;
+            }
+            .card-content {
+                padding: 10px;
+            }
+            .card-left {
+                flex: 0 0 180px;
+                margin-right: 15px;
+            }
+            .left-images {
+                gap: 10px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            .card-left img.blood-logo {
+                width: 60px;
+                height: 60px;
+            }
+            .user-photo {
+                width: 50px;
+                height: 50px;
+            }
+            .blood-group-logo {
+                font-size: 16px;
+                margin-top: 5px;
+            }
+            .card-right {
+                font-size: 14px;
+            }
+            .card-right p {
+                margin: 8px 0;
+            }
+            .card-header {
+                font-size: 18px;
+                padding: 10px;
+            }
+            .card-date {
+                font-size: 11px;
+                padding: 0 10px 2px;
+                justify-content: space-between;
+                align-items: flex-start;
+                flex-wrap: wrap;
+            }
+            .date-left {
+                flex: 1;
+                min-width: 50%;
+            }
+            .producer-right {
+                flex: 1;
+                min-width: 50%;
+                font-size: 10px;
+            }
+            .card-footer {
+                font-size: 12px;
+                padding: 6px;
+            }
+            .form-label {
+                font-size: 14px;
+            }
+            .form-control {
+                font-size: 14px;
+            }
+            .floating-logo {
+                width: 70px;
+                top: 45px;
+                right: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container my-4">
+        <h1 class="text-center mb-4">রক্তদাতা কার্ড জেনারেটর</h1>
+        
+        <div class="row justify-content-center">
+            <div class="col-lg-6 col-md-8 col-12">
+                <form>
+                    <div class="mb-3">
+                        <label for="name" class="form-label">নাম (বাংলায়):</label>
+                        <input type="text" class="form-control form-input" id="name" placeholder="আপনার নাম লিখুন" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="bg" class="form-label">রক্তের গ্রুপ:</label>
+                        <input type="text" class="form-control form-input" id="bg" placeholder="যেমন: A+" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="mobile" class="form-label">মোবাইল নম্বর:</label>
+                        <input type="text" class="form-control form-input" id="mobile" placeholder="যেমন: ০১৭১২৩৪৫৬৭৮" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="upazila" class="form-label">উপজেলা:</label>
+                        <input type="text" class="form-control form-input" id="upazila" placeholder="আপনার উপজেলা" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="donations" class="form-label">কতবার রক্ত দিয়েছেন:</label>
+                        <input type="text" class="form-control form-input" id="donations" placeholder="যেমন: ৫" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="userPhoto" class="form-label">আপনার ছবি আপলোড করুন:</label>
+                        <input type="file" class="form-control form-input" id="userPhoto" accept="image/*" onchange="previewImage(event)">
+                    </div>
+                    
+                    <button type="button" class="btn btn-custom w-100" id="generate" onclick="generateCard()">কার্ড আপডেট করুন</button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="row justify-content-center mt-4">
+            <div class="col-12">
+                <div id="card" class="card-preview mx-auto">
+                    <img class="floating-logo" src="logo.png" alt="লোগো">
+                    <div class="card-content-wrapper">
+                        <div class="card-header" id="cardheader">রক্তদাতা কার্ড</div>
+                        <div class="card-content">
+                            <div class="card-left">
+                                <div class="left-images">
+                                    <img src="blood_logo.png" alt="রক্তদাতা আইকন" class="blood-logo">
+                                    <img id="cardUserPhoto" src="" alt="ব্যবহারকারীর ছবি" class="user-photo empty">
+                                </div>
+                                <div class="blood-group-logo empty" id="logo-bg">রক্তের গ্রুপ: A+</div>
+                            </div>
+                            <div class="card-right">
+                                <p>নাম: <span id="cardname" class="empty">রনি আবীর</span></p>
+                                <p>মোবাইল: <span id="cardmobile" class="empty">০১৭১২৩৪৫৬৭৮</span></p>
+                                <p>ঠিকানা : <span id="cardupazila" class="empty">দিনাজপুর, বোচাগঞ্জ</span></p>
+                                <p>রক্তদান: <span id="carddonations" class="empty">৫ বার</span></p>
+                            </div>
+                        </div>
+                        <div class="card-date">
+                            <span id="carddate" class="date-left"></span>
+                            <span class="producer-right">  কার্ড প্রদানকারী : Beautiful Dinajpur</span>
+                        </div>
+                        <div class="card-footer">আল-কুরআন, সূরা মায়িদা (৫:৩২)|যে ব্যক্তি একটি প্রাণ রক্ষা করে, সে যেন সমগ্র মানবজাতিকে রক্ষা করল।</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row justify-content-center mt-3">
+            <div class="col-12 text-center">
+                <button id="download" class="btn btn-custom disabled" onclick="downloadCard()" style="min-width: 200px;">PNG হিসেবে ডাউনলোড করুন</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script>
+        const inputs = ['name', 'bg', 'mobile', 'upazila', 'donations'];
+        let allFilled = false;
+        let userPhotoUrl = '';
+
+        function previewImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                userPhotoUrl = URL.createObjectURL(file);
+                const preview = document.getElementById('cardUserPhoto');
+                preview.src = userPhotoUrl;
+                preview.classList.remove('empty');
+                updatePreview(); // Trigger update to check if all filled
+            }
+        }
+
+        function generateCardNumber() {
+            const prefix = "dinaj_blood:";
+            const randomNum = Math.floor(1000 + Math.random() * 9000).toString();
+            return prefix + randomNum;
+        }
+
+        function generateDate() {
+            const now = new Date();
+            const day = now.getDate();
+            const monthNames = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+            ];
+            const month = monthNames[now.getMonth()];
+            const year = now.getFullYear();
+            return `${day} ${month} ${year}`;
+        }
+
+        function updatePreview() {
+            let filled = true;
+            inputs.forEach(id => {
+                const input = document.getElementById(id);
+                const logoBgSpan = document.getElementById('logo-bg');
+                const value = input.value.trim();
+                if (value) {
+                    if (id === 'upazila') {
+                        const span = document.getElementById('card' + id);
+                        span.innerText = 'দিনাজপুর, ' + value;
+                        span.classList.remove('empty');
+                    } else if (id === 'donations') {
+                        const span = document.getElementById('card' + id);
+                        span.innerText = value + ' বার';
+                        span.classList.remove('empty');
+                    } else if (id === 'bg') {
+                        logoBgSpan.innerText = 'রক্তের গ্রুপ: ' + value;
+                        logoBgSpan.classList.remove('empty');
+                    } else {
+                        const span = document.getElementById('card' + id);
+                        span.innerText = value;
+                        span.classList.remove('empty');
+                    }
+                } else {
+                    if (id === 'upazila') {
+                        const span = document.getElementById('card' + id);
+                        span.innerText = 'দিনাজপুর, বোচাগঞ্জ';
+                        span.classList.add('empty');
+                    } else if (id === 'donations') {
+                        const span = document.getElementById('card' + id);
+                        span.innerText = '৫ বার';
+                        span.classList.add('empty');
+                    } else if (id === 'name') {
+                        const span = document.getElementById('card' + id);
+                        span.innerText = 'রনি আবীর';
+                        span.classList.add('empty');
+                    } else if (id === 'bg') {
+                        logoBgSpan.innerText = 'রক্তের গ্রুপ: A+';
+                        logoBgSpan.classList.add('empty');
+                    } else if (id === 'mobile') {
+                        const span = document.getElementById('card' + id);
+                        span.innerText = '০১৭১২৩৪৫৬৭৮';
+                        span.classList.add('empty');
+                    }
+                    filled = false;
+                }
+            });
+
+            // Check user photo
+            const userPhoto = document.getElementById('userPhoto');
+            const cardUserPhoto = document.getElementById('cardUserPhoto');
+            if (userPhoto.files && userPhoto.files.length > 0) {
+                cardUserPhoto.classList.remove('empty');
+            } else {
+                cardUserPhoto.src = '';
+                cardUserPhoto.classList.add('empty');
+                filled = false;
+            }
+
+            allFilled = filled;
+            const card = document.getElementById('card');
+            const download = document.getElementById('download');
+            if (allFilled) {
+                card.classList.add('filled');
+                download.classList.remove('disabled');
+                download.disabled = false;
+            } else {
+                card.classList.remove('filled');
+                download.classList.add('disabled');
+                download.disabled = true;
+            }
+        }
+
+        inputs.forEach(id => {
+            document.getElementById(id).addEventListener('input', updatePreview);
+        });
+
+        function generateCard() {
+            const cardHeader = document.getElementById('cardheader');
+            cardHeader.innerText = 'রক্তদাতা কার্ড - ' + generateCardNumber();
+            const cardDate = document.getElementById('carddate');
+            cardDate.innerText = 'কার্ড প্রদানের তারিখ : ' + generateDate();
+            updatePreview();
+        }
+        
+        function downloadCard() {
+            if (!allFilled) {
+                alert('সকল তথ্য এবং ছবি পূরণ করুন।');
+                return;
+            }
+            const card = document.getElementById('card');
+            // Clone the card to avoid modifying the original during capture
+            const clone = card.cloneNode(true);
+            clone.style.position = 'absolute';
+            clone.style.left = '-9999px';
+            clone.style.top = '0';
+            clone.style.border = '2px solid #d32f2f'; // Ensure border is included
+            clone.style.boxShadow = 'none'; // Remove shadow
+            clone.style.margin = '0';
+            clone.style.padding = '0';
+            clone.style.background = 'white';
+            // Set size to match the original preview for auto-fit
+            const rect = card.getBoundingClientRect();
+            clone.style.width = rect.width + 'px';
+            clone.style.height = rect.height + 'px';
+            document.body.appendChild(clone);
+
+            // Force the clone to have the filled state
+            clone.classList.add('filled');
+            const cloneWrapper = clone.querySelector('.card-content-wrapper');
+            cloneWrapper.style.opacity = '1';
+
+            // Higher scale for HD quality
+            const isMobile = window.innerWidth <= 576;
+            const scale = isMobile ? 4 : 3;
+
+            html2canvas(clone, {
+                scale: scale,
+                useCORS: true,
+                // No fixed width/height; use the clone's natural size for auto-fit
+                backgroundColor: null,
+                removeContainer: true
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'রক্তদাতা_কার্ড.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                // Clean up clone
+                document.body.removeChild(clone);
+            }).catch(err => {
+                console.error('Error generating PNG:', err);
+                alert('ইমেজ তৈরিতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+                // Clean up clone
+                document.body.removeChild(clone);
+            });
+        }
+    </script>
+</body>
+</html>
