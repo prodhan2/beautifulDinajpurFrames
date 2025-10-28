@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>রক্তদাতা তথ্য</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #f2f2f2; padding: 20px; margin: 0; }
+    h2 { text-align: center; color: #c0392b; font-size: 1.8em; margin-bottom: 20px; }
+    form { max-width: 600px; margin: auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    label { display: block; margin: 8px 0 4px; font-weight: 600; font-size: 0.95em; }
+    input, select, textarea { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; margin-bottom: 12px; font-size: 1em; box-sizing: border-box; }
+    textarea { resize: vertical; min-height: 60px; }
+    button { width: 100%; padding: 14px; background: #e74c3c; color: white; font-size: 1.1em; border: none; border-radius: 8px; cursor: pointer; transition: background 0.3s; }
+    button:hover { background: #c0392b; }
+    .id-display { background: #e8f5e9; padding: 12px; border-radius: 8px; text-align: center; font-weight: bold; color: #2e7d32; font-size: 1.1em; margin-bottom: 15px; }
+    #loadingOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 9999; justify-content: center; align-items: center; }
+    #loadingOverlay div { border: 5px solid #f3f3f3; border-top: 5px solid #e74c3c; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @media (max-width: 480px) { body { padding: 10px; } h2 { font-size: 1.5em; } }
+  </style>
+</head>
+<body>
+  <h2>রক্তদাতা তথ্য ফর্ম</h2>
+
+  <form id="donorForm">
+    <div class="id-display" id="idDisplay">আইডি: DINAJ-XXXX (ফর্ম পূরণ করুন)</div>
+
+    <label for="name">নাম</label>
+    <input type="text" id="name" name="name" placeholder="আপনার নাম লিখুন" required>
+
+    <label for="age">বয়স</label>
+    <input type="number" id="age" name="age" placeholder="আপনার বয়স লিখুন" required>
+
+    <label for="group">রক্তের গ্রুপ</label>
+    <select id="group" name="group" required>
+      <option value="">চয়ন করুন</option>
+      <option>A+</option><option>A-</option>
+      <option>B+</option><option>B-</option>
+      <option>O+</option><option>O-</option>
+      <option>AB+</option><option>AB-</option>
+    </select>
+
+    <label for="gender">লিঙ্গ</label>
+    <select id="gender" name="gender" required>
+      <option value="">চয়ন করুন</option>
+      <option>পুরুষ</option><option>মহিলা</option><option>অন্যান্য</option>
+    </select>
+
+    <label for="mobile">মোবাইল</label>
+    <input type="text" id="mobile" name="mobile" placeholder="যেমন: 017xxxxxxxx" required>
+
+    <label for="address">ঠিকানা</label>
+    <input type="text" id="address" name="address" placeholder="যেমন: বোচাগঞ্জ, দিনাজপুর" required>
+
+    <label for="last_time_donation">শেষ রক্তদান তারিখ</label>
+    <input type="date" id="last_time_donation" name="last_time_donation">
+
+    <label for="total_donation">মোট রক্তদান</label>
+    <input type="number" id="total_donation" name="total_donation" min="0" value="0" required>
+
+    <label for="comment">মন্তব্য</label>
+    <textarea id="comment" name="comment" placeholder="যদি কোনো মন্তব্য থাকে লিখুন"></textarea>
+
+    <button type="submit">সাবমিট করে কার্ড তৈরি করুন</button>
+  </form>
+
+  <div id="loadingOverlay"><div></div></div>
+  <div id="message"></div>
+
+  <script>
+    const webAppURL = 'https://script.google.com/macros/s/AKfycbzIGBws1QD23VHQxKJ-vRL1tU_0gpEqgi3b6IxDSowvm45s1rvQQhG8pNCQQf_Y-ANc8g/exec';
+
+    // আইডি জেনারেট করা
+    function generateID() {
+      const random = Math.floor(1000 + Math.random() * 9000);
+      return `Beautiful_Dinaj-${random}`;
+    }
+
+    let generatedID = generateID();
+    document.getElementById('idDisplay').textContent = `আইডি: ${generatedID}`;
+
+    // ফর্মে ইনপুট চেঞ্জ হলে নতুন ID
+    document.querySelectorAll('input, select').forEach(el => {
+      el.addEventListener('input', () => {
+        generatedID = generateID();
+        document.getElementById('idDisplay').textContent = `আইডি: ${generatedID}`;
+      });
+    });
+
+    document.getElementById('donorForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const msg = document.getElementById('message');
+      const loading = document.getElementById('loadingOverlay');
+      msg.innerHTML = '';
+      loading.style.display = 'flex';
+
+      const formData = new FormData(this);
+      formData.append('id', generatedID); // ID যোগ করা
+
+      const fullData = {};
+      formData.forEach((value, key) => fullData[key] = value);
+
+      // কার্ডের জন্য শুধু প্রয়োজনীয় ডেটা
+      const cardData = {
+        id: generatedID,
+        name: fullData.name,
+        group: fullData.group,
+        mobile: fullData.mobile,
+        upazila: fullData.address.split(',').pop().trim(),
+        total_donation: fullData.total_donation
+      };
+
+      // Google Sheet এ সব তথ্য + ID
+      fetch(webAppURL, { method: 'POST', body: formData })
+        .then(res => res.text())
+        .then(text => {
+          loading.style.display = 'none';
+          const result = JSON.parse(text);
+          if (result.result === 'success') {
+            const query = new URLSearchParams(cardData).toString();
+            window.location.href = `card-generator.html?${query}`;
+          } else {
+            msg.innerHTML = '<p style="color:red">Failed: ' + result.message + '</p>';
+          }
+        })
+        .catch(err => {
+          loading.style.display = 'none';
+          msg.innerHTML = '<p style="color:red">Network error: ' + err.message + '</p>';
+        });
+    });
+  </script>
+</body>
+</html>
