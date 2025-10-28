@@ -46,7 +46,7 @@
       border-color: #b71c1c; 
     }
 
-    /* কার্ড কন্টেইনার – ফেসবুক ফিট */
+    /* কার্ড কন্টেইনার – শুধু ভিউয়ের জন্য স্কেল */
     .card-container {
       width: 1200px;
       max-width: 100%;
@@ -55,7 +55,7 @@
       transition: transform 0.3s ease;
     }
 
-    /* রেসপন্সিভ স্কেলিং */
+    /* রেসপন্সিভ স্কেলিং – শুধু ভিজ্যুয়াল */
     @media (max-width: 576px) {
       .card-container { transform: scale(0.32); margin-top: 30px; }
       body { padding: 5px; }
@@ -81,66 +81,83 @@
       background: url('watermark.png') no-repeat center; background-size: 38% 88%; opacity: 0.07; z-index: 0;
     }
     .floating-logo { 
-  position: absolute; 
-  top: 130px;   /* ← এখানে 75px থেকে 120px (বা যতটুকু চান) */
-  right: 35px; 
-  z-index: 2; 
-  width: 135px; 
-  pointer-events: none; 
-}
+      position: absolute; 
+      top: 120px; 
+      right: 35px; 
+      z-index: 2; 
+      width: 135px; 
+      pointer-events: none; 
+    }
     .card-content-wrapper { position: relative; z-index: 1; opacity: 0.5; transition: opacity 0.3s; flex: 1; display: flex; flex-direction: column; }
     .card-preview.filled .card-content-wrapper { opacity: 1; }
 
-    /* হেডার – ICON TEXT-এর সামনে */
-   .card-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 18px;
-  padding: 22px;
-  font-size: 38px;
-  font-weight: bold;
-  color: white;
-  background-color: #d32f2f;
-  flex-shrink: 0;
-  position: relative;
-  z-index: 1;
-}
+    /* হেডার */
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      padding: 22px;
+      font-size: 32px; /* ছোট করা হয়েছে */
+      font-weight: bold;
+      color: white;
+      background-color: #d32f2f;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 1;
+    }
+    .header-icon {
+      width: 80px;
+      height: 80px;
+      flex-shrink: 0;
+    }
+    .header-full-text {
+      display: inline;
+      font-size: 32px;
+      line-height: 1.3;
+    }
+    .header-full-text .id-number {
+      font-size: 24px;
+      font-weight: normal;
+      opacity: 0.95;
+    }
 
-.header-icon {
-  width: 80px;
-  height: 80px;
-  flex-shrink: 0;
-}
-
-.header-full-text {
-  display: inline;
-  font-size: 38px;
-  line-height: 1.3;
-}
-
-.header-full-text .id-number {
-  font-size: 28px;
-  font-weight: normal;
-  opacity: 0.95;
-}
     .card-content { display: flex; padding: 28px 35px; flex: 1; align-items: center; justify-content: flex-start; }
     .card-left { flex: 0 0 460px; text-align: center; display: flex; flex-direction: column; align-items: center; }
     .left-images { display: flex; align-items: center; justify-content: center; gap: 45px; margin-bottom: 18px; }
     .card-left img.blood-logo { width: 235px; height: 235px; object-fit: contain; }
-    .user-photo { width: 175px; height: 175px; border-radius: 50%; overflow: hidden; border: 4px solid #d32f2f; background-color: #f0f0f0; position: relative; display: inline-block; }
+    .user-photo { width: 175px; height: 175px; border-radius: 50%; overflow: hidden; border: 4px solid #f10000; background-color: #9c3323; position: relative; display: inline-block; }
     .user-photo.empty { border-color: #ccc; }
     .user-photo img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
-    .blood-group-logo { margin-top: 16px; font-size: 40px; font-weight: bold; color: #d32f2f; text-transform: uppercase; border-bottom: 2px dotted #d32f2f; padding-bottom: 4px; display: inline-block; }
+    .blood-group-logo { margin-top: 16px; font-size: 34px; font-weight: bold; color: #d32f2f; text-transform: uppercase; border-bottom: 2px dotted #d32f2f; padding-bottom: 4px; display: inline-block; }
 
-    .card-right { flex: 1; font-size: 29px; padding-left: 35px; }
+    .card-right { flex: 1; font-size: 24px; padding-left: 35px; }
     .card-right p { margin: 15px 0; font-weight: bold; word-wrap: break-word; }
     .card-right p span { border-bottom: 2px dotted #d32f2f; padding-bottom: 3px; display: inline-block; }
 
-    .card-date { display: flex; justify-content: space-between; align-items: center; padding: 0 45px 14px; font-size: 21px; color: #555; background-color: #f8f8f8; border-top: 1px solid #e57979; flex-shrink: 0; }
+    .card-date { display: flex; justify-content: space-between; align-items: center; padding: 0 45px 14px; font-size: 18px; color: #000000; background-color: #f8f8f8; border-top: 1px solid #e57979; flex-shrink: 0; }
     .date-left { text-align: left; flex: 1; }
     .producer-right { text-align: right; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .card-footer { width: 100%; background-color: #f8f8f8; text-align: center; padding: 18px; font-size: 21px; color: #555; flex-shrink: 0; z-index: 3; }
+  .card-footer {
+    width: 100%;
+    background-color: #54af68;
+    text-align: center;
+    padding: 18px;
+    font-size: 18px;
+    color: #fff; /* changed from #555 to white */
+    flex-shrink: 0;
+    z-index: 3;
+}
+
+    /* হাইডেন কার্ড – শুধু ডাউনলোডের জন্য */
+    #printCard {
+      position: absolute;
+      left: -9999px;
+      top: 0;
+      width: 1200px;
+      height: 630px;
+      transform: none !important;
+    }
   </style>
 </head>
 <body>
@@ -158,19 +175,17 @@
     </div>
   </div>
 
-  <!-- কার্ড – 1200×630 -->
+  <!-- ভিজ্যুয়াল কার্ড – স্কেল করা -->
   <div class="card-container">
     <div id="card" class="card-preview">
       <img class="floating-logo" src="logo.png" alt="লোগো">
       <div class="card-content-wrapper">
-       <div class="card-header" id="cardheader">
-  <img src="watermark.png" alt="Icon" class="header-icon">
-  <span class="header-full-text">
-    রক্তদাতা কার্ড<span class="id-number" id="cardID">, DINAJ-XXXX</span>
-  </span>
-</div>
-
-        
+        <div class="card-header" id="cardheader">
+          <img src="watermark.png" alt="Icon" class="header-icon">
+          <span class="header-full-text">
+            রক্তদাতা কার্ড<span class="id-number" id="cardID">, DINAJ-XXXX</span>
+          </span>
+        </div>
         <div class="card-content">
           <div class="card-left">
             <div class="left-images">
@@ -197,6 +212,41 @@
     </div>
   </div>
 
+  <!-- হাইডেন কার্ড – শুধু ডাউনলোডের জন্য -->
+  <div id="printCard" class="card-preview">
+    <img class="floating-logo" src="logo.png" alt="লোগো">
+    <div class="card-content-wrapper">
+      <div class="card-header">
+        <img src="watermark.png" alt="Icon" class="header-icon">
+        <span class="header-full-text">
+          রক্তদাতা কার্ড<span class="id-number" id="printID">, DINAJ-XXXX</span>
+        </span>
+      </div>
+      <div class="card-content">
+        <div class="card-left">
+          <div class="left-images">
+            <img src="blood_logo.png" alt="রক্তদাতা আইকন" class="blood-logo">
+            <div id="printPhotoContainer" class="user-photo empty">
+              <img id="printUserPhoto" src="" alt="ইউজার ছবি">
+            </div>
+          </div>
+          <div class="blood-group-logo" id="print-bg">রক্তের গ্রুপ: A+</div>
+        </div>
+        <div class="card-right">
+          <p>নাম: <span id="printname">রনি আবীর</span></p>
+          <p>মোবাইল: <span id="printmobile">০১৭১২৩৪৫৬৭৮</span></p>
+          <p>ঠিকানা: <span id="printupazila">দিনাজপুর, বোচাগঞ্জ</span></p>
+          <p>রক্তদান: <span id="printdonations">৫ বার</span></p>
+        </div>
+      </div>
+      <div class="card-date">
+        <span id="printdate" class="date-left"></span>
+        <span class="producer-right">কার্ড প্রদানকারী: Beautiful Dinajpur</span>
+      </div>
+      <div class="card-footer">আল-কুরআন, সূরা মায়িদা (৫:৩২)|যে ব্যক্তি একটি প্রাণ রক্ষা করে, সে যেন সমগ্র মানবজাতিকে রক্ষা করল।</div>
+    </div>
+  </div>
+
   <!-- লাইব্রেরি -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
@@ -205,6 +255,7 @@
   <script>
     const { jsPDF } = window.jspdf;
 
+    // URL থেকে ডেটা
     const urlParams = new URLSearchParams(window.location.search);
     const data = {
       id: urlParams.get('id') || 'DINAJ-0000',
@@ -215,7 +266,7 @@
       total_donation: urlParams.get('total_donation') || '0'
     };
 
-    // কার্ডে তথ্য
+    // ভিজ্যুয়াল কার্ডে ডেটা
     document.getElementById('cardID').textContent = ', ' + data.id;
     document.getElementById('cardname').textContent = data.name;
     document.getElementById('logo-bg').textContent = 'রক্তের গ্রুপ: ' + data.group;
@@ -223,45 +274,57 @@
     document.getElementById('cardupazila').textContent = 'দিনাজপুর, ' + data.upazila;
     document.getElementById('carddonations').textContent = data.total_donation + ' বার';
 
+    // প্রিন্ট কার্ডে ডেটা
+    document.getElementById('printID').textContent = ', ' + data.id;
+    document.getElementById('printname').textContent = data.name;
+    document.getElementById('print-bg').textContent = 'রক্তের গ্রুপ: ' + data.group;
+    document.getElementById('printmobile').textContent = data.mobile;
+    document.getElementById('printupazila').textContent = 'দিনাজপুর, ' + data.upazila;
+    document.getElementById('printdonations').textContent = data.total_donation + ' বার';
+
     const today = new Date().toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' });
     document.getElementById('carddate').textContent = 'কার্ড প্রদানের তারিখ: ' + today;
+    document.getElementById('printdate').textContent = 'কার্ড প্রদানের তারিখ: ' + today;
 
     const card = document.getElementById('card');
     card.classList.add('filled');
 
     // ছবি আপলোড
-    const container = document.getElementById('userPhotoContainer');
-    const img = document.getElementById('cardUserPhoto');
+    const viewContainer = document.getElementById('userPhotoContainer');
+    const viewImg = document.getElementById('cardUserPhoto');
+    const printContainer = document.getElementById('printPhotoContainer');
+    const printImg = document.getElementById('printUserPhoto');
+
     document.getElementById('userPhoto').addEventListener('change', function(e) {
       const file = e.target.files[0];
       if (file) {
         const url = URL.createObjectURL(file);
-        img.src = url;
-        img.onload = () => container.classList.remove('empty');
+        viewImg.src = url;
+        printImg.src = url;
+        viewImg.onload = () => {
+          viewContainer.classList.remove('empty');
+          printContainer.classList.remove('empty');
+        };
       }
     });
 
-    // ডাউনলোড – 1200×630
+    // ডাউনলোড
     document.getElementById('downloadPNG').onclick = () => generateImage('png');
     document.getElementById('downloadPDF').onclick = () => generateImage('pdf');
 
     async function generateImage(format) {
-      const clone = card.cloneNode(true);
-      clone.style.position = 'absolute';
-      clone.style.left = '-9999px';
-      clone.style.boxShadow = 'none';
-      clone.style.width = '1200px';
-      clone.style.height = '630px';
-      clone.style.transform = 'none';
-      document.body.appendChild(clone);
+      const printCard = document.getElementById('printCard');
 
       try {
-        const canvas = await html2canvas(clone, { 
-          scale: 2, 
+        const canvas = await html2canvas(printCard, {
+          scale: 1.5, // কোয়ালিটি ভালো, সাইজ ঠিক
           useCORS: true,
           backgroundColor: '#ffffff',
-          logging: false
+          logging: false,
+          width: 1200,
+          height: 630
         });
+
         const imgData = canvas.toDataURL('image/png');
 
         if (format === 'png') {
@@ -280,8 +343,6 @@
         }
       } catch (err) {
         alert('ডাউনলোডে সমস্যা: ' + err.message);
-      } finally {
-        document.body.removeChild(clone);
       }
     }
   </script>
