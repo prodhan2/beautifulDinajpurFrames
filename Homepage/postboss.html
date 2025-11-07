@@ -26,7 +26,7 @@
     position:relative; border-radius:16px; overflow:hidden;
     background:#000; box-shadow:0 8px 24px rgba(0,0,0,.35);
     touch-action:none;
-    will-change: transform; /* For smoother mobile rendering */
+    will-change: transform;
   }
   canvas{ width:100%; height:auto; display:block; image-rendering: -webkit-optimize-contrast; }
   /* Floating text action icons */
@@ -66,7 +66,7 @@
   #imageIcons button:active{ transform:scale(.98); }
   /* Crop mode overlay */
   #cropOverlay{
-    position:absolute; top:0; left:0; width:100%; height:100%; 
+    position:absolute; top:0; left:0; width:100%; height:100%;
     background:rgba(0,0,0,0.5); display:none; z-index:10;
     cursor:crosshair;
   }
@@ -76,8 +76,8 @@
     background:var(--panel); border-radius:12px; padding:6px;
     display:flex; flex-direction:column; gap:6px;
   }
-  #controls input[type="text"]{ 
-    width:100%; 
+  #controls input[type="text"]{
+    width:100%;
   }
   #controls input[type="file"],
   #controls input[type="text"],
@@ -85,7 +85,7 @@
   #controls button{
     border:none; outline:none; border-radius:8px;
     padding:8px 10px; font-size:14px; background:var(--panel-2); color:var(--text);
-    min-height:44px; /* Touch-friendly */
+    min-height:44px;
     -webkit-tap-highlight-color: transparent;
   }
   #controls button.primary{ background:var(--accent); color:#0b1020; font-weight:700; }
@@ -122,7 +122,7 @@
   .btn{
     border:none; outline:none; border-radius:8px;
     padding:8px 10px; font-size:16px; background:var(--panel-2); color:var(--text);
-    min-width:44px; min-height:44px; text-align:center; /* Touch-friendly */
+    min-width:44px; min-height:44px; text-align:center;
     -webkit-tap-highlight-color: transparent;
   }
   .btn.primary{ background:var(--accent); color:#0b1020; font-weight:700; }
@@ -154,16 +154,21 @@
     #sourceGroup .small-btn { min-width: 40px; min-height: 40px; }
     #textIcons, #imageIcons { gap: 2px; }
     #textIcons button, #imageIcons button { padding: 4px 6px; font-size: 12px; }
+    canvas { max-height: 50vh; }
   }
   @media (max-width: 320px) {
     #zoomPercent { font-size: 12px; }
     .btn { min-width: 36px; min-height: 36px; font-size: 14px; padding: 6px; }
+    #app { padding: 2px; gap: 2px; }
+  }
+  @media (min-width: 768px) {
+    #app { max-width: 640px; margin: 0 auto; }
+    canvas { max-height: 60vh; }
   }
 </style>
 </head>
 <body>
   <h2>BeautifulDinajpur Poster Builder</h2>
-
   <div id="app">
     <!-- Canvas Area -->
     <div id="canvas-wrap">
@@ -171,6 +176,7 @@
       <div id="selectedBadge">Selected</div>
       <div id="textIcons">
         <button id="moveTextBtn" title="Free Transform">↔️</button>
+        <button id="duplicateBtn" title="Duplicate Text">📋</button>
         <button id="editBtn" title="Edit text">✏️</button>
         <input type="color" id="selectedColor" title="Change color" />
         <select id="selectedFont" title="Change font"></select>
@@ -191,7 +197,6 @@
         <canvas id="cropCanvas"></canvas>
       </div>
     </div>
-
     <!-- Controls - Compact -->
     <div id="controls">
       <div class="row">
@@ -215,7 +220,6 @@
         <button id="sourceZoomIn" class="small-btn" title="Source Zoom In">+</button>
       </div>
     </div>
-
     <!-- Bottom bar -->
     <div id="bottom-controls">
       <div class="group">
@@ -226,127 +230,113 @@
       <button id="download" class="btn primary">Download</button>
     </div>
   </div>
-
 <script>
-/* ========= State ========= */
-const canvas = document.getElementById('poster');
-const ctx = canvas.getContext('2d', { willReadFrequently: true, alpha: false }); // alpha: false for perf
-const cropCanvas = document.getElementById('cropCanvas');
-const cropCtx = cropCanvas.getContext('2d');
-
-const uploader   = document.getElementById('uploader');
-const textInput  = document.getElementById('textInput');
-const sourceInput = document.getElementById('sourceInput');
-const fontSelect = document.getElementById('fontSelect');
-const addTextBtn = document.getElementById('addText');
-const sourceColor = document.getElementById('sourceColor');
-const sourceFont = document.getElementById('sourceFont');
-const sourceShadow = document.getElementById('sourceShadow');
-const sourceZoomIn = document.getElementById('sourceZoomIn');
-const sourceZoomOut = document.getElementById('sourceZoomOut');
-
-const zoomInBtn  = document.getElementById('zoomIn');
-const zoomOutBtn = document.getElementById('zoomOut');
-const zoomLabel  = document.getElementById('zoomPercent');
-const downloadBtn= document.getElementById('download');
-const itemSelect = document.getElementById('itemSelect');
-
-const textIcons  = document.getElementById('textIcons');
-const imageIcons = document.getElementById('imageIcons');
-const cropOverlay = document.getElementById('cropOverlay');
-const editBtn    = document.getElementById('editBtn');
-const delBtn     = document.getElementById('delBtn');
-const closeText  = document.getElementById('closeText');
-const closeImage = document.getElementById('closeImage');
-const selectedBadge = document.getElementById('selectedBadge');
-const selectedColor = document.getElementById('selectedColor');
-const selectedFont  = document.getElementById('selectedFont');
-const textShadow   = document.getElementById('textShadow');
-const textZoomIn = document.getElementById('textZoomIn');
-const textZoomOut = document.getElementById('textZoomOut');
-const imgZoomIn = document.getElementById('imgZoomIn');
-const imgZoomOut = document.getElementById('imgZoomOut');
-const freeCropBtn = document.getElementById('freeCropBtn');
-const moveTextBtn = document.getElementById('moveTextBtn');
-const moveImgBtn = document.getElementById('moveImgBtn');
-
-/* Frame overlay (Facebook style) */
+/* ========= Optimized State Management ========= */
+const elements = {
+  canvas: document.getElementById('poster'),
+  ctx: null,
+  cropCanvas: document.getElementById('cropCanvas'),
+  cropCtx: null,
+  uploader: document.getElementById('uploader'),
+  textInput: document.getElementById('textInput'),
+  sourceInput: document.getElementById('sourceInput'),
+  addTextBtn: document.getElementById('addText'),
+  sourceColor: document.getElementById('sourceColor'),
+  sourceFont: document.getElementById('sourceFont'),
+  sourceShadow: document.getElementById('sourceShadow'),
+  sourceZoomIn: document.getElementById('sourceZoomIn'),
+  sourceZoomOut: document.getElementById('sourceZoomOut'),
+  zoomInBtn: document.getElementById('zoomIn'),
+  zoomOutBtn: document.getElementById('zoomOut'),
+  zoomLabel: document.getElementById('zoomPercent'),
+  downloadBtn: document.getElementById('download'),
+  itemSelect: document.getElementById('itemSelect'),
+  textIcons: document.getElementById('textIcons'),
+  imageIcons: document.getElementById('imageIcons'),
+  cropOverlay: document.getElementById('cropOverlay'),
+  editBtn: document.getElementById('editBtn'),
+  delBtn: document.getElementById('delBtn'),
+  closeText: document.getElementById('closeText'),
+  closeImage: document.getElementById('closeImage'),
+  selectedBadge: document.getElementById('selectedBadge'),
+  selectedColor: document.getElementById('selectedColor'),
+  selectedFont: document.getElementById('selectedFont'),
+  textShadow: document.getElementById('textShadow'),
+  textZoomIn: document.getElementById('textZoomIn'),
+  textZoomOut: document.getElementById('textZoomOut'),
+  imgZoomIn: document.getElementById('imgZoomIn'),
+  imgZoomOut: document.getElementById('imgZoomOut'),
+  freeCropBtn: document.getElementById('freeCropBtn'),
+  moveTextBtn: document.getElementById('moveTextBtn'),
+  moveImgBtn: document.getElementById('moveImgBtn'),
+  duplicateBtn: document.getElementById('duplicateBtn')
+};
+const state = {
+  images: [],
+  texts: [],
+  previewText: null,
+  selected: null,
+  selectedType: null,
+  selectedImgIndex: -1,
+  currentDate: '',
+  sourceObj: { text: '', color: '#ffffff', font: 'sans-serif', shadow: true, scale: 1 },
+  defaultFont: 'sans-serif',
+  defaultHeadlineColor: '#ffffff',
+  showHandles: false,
+  transformMode: null,
+  currentObj: null,
+  isCurrentText: false,
+  dragStartX: 0, dragStartY: 0,
+  startObjX: 0, startObjY: 0,
+  startScale: 1,
+  startRadial: 0,
+  prevAngle: 0,
+  lastClickTime: 0,
+  lastClickPos: { x: 0, y: 0 },
+  DOUBLE_CLICK_THRESHOLD: 300,
+  DOUBLE_CLICK_DISTANCE: 10,
+  pinchTarget: '',
+  pinchStartDist: 0, pinchStartScale: 1,
+  pinchCenter: {x:0,y:0},
+  imgOffsetFromCenter: {x:0,y:0},
+  textPinchStartDist: 0, textPinchStartScale: 1,
+  selectedImgPinchStartDist: 0, selectedImgPinchStartScale: 1,
+  cropping: false,
+  cropPoints: [],
+  currentCropImg: null,
+  needsRedraw: false,
+  redrawTimeout: null,
+  textBounds: [],
+  lastDrawTime: 0,
+  framePadding: 40,
+  usableWidth: 0,
+  baseFontPx: 48,
+  baseLineH: 60,
+  MIN_REDRAW_INTERVAL: 16,
+  handleRadius: 8,
+  rotOffset: 40,
+  isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+};
+state.MIN_REDRAW_INTERVAL = state.isMobile ? 33 : 16;
+/* ========= Frame ========= */
 const frame = new Image();
-frame.src = 'post.png'; // keep your frame file here
-frame.crossOrigin = 'anonymous'; // For canvas tainting if needed
+frame.src = 'post.png';
+frame.crossOrigin = 'anonymous';
 let frameBitmap = null;
-
-/* Images state - now multiple */
-let images = []; // {img, x, y, scale, rotation, croppedData?}
-let selectedImg = null; // selected image index or null
-
-/* Text blocks */
-let texts = [];   // { text, x, y, scale, rotation, color, font, shadow: true }
-let previewText = null; // For live preview
-let selected = null;
-let selectedType = null; // 'text' or 'image'
-
-/* Date and source info */
-let currentDate = '';
-let sourceObj = { text: '', color: '#ffffff', font: 'sans-serif', shadow: true, scale: 1 };
-let defaultFont = 'sans-serif'; // Will be set after fonts load
-let defaultHeadlineColor = '#ffffff'; // Default color for headlines
-
-/* Interaction state */
-let selectedImgIndex = -1;
-let showHandles = false;
-let transformMode = null; // 'move', 'scale', 'rotate'
-let currentObj = null;
-let isCurrentText = false;
-let dragStartX = 0, dragStartY = 0;
-let startObjX = 0, startObjY = 0;
-let startScale = 1;
-let startRadial = 0;
-let prevAngle = 0;
-
-/* Pinch state */
-let pinchTarget = ''; // 'image' | 'text' | 'selectedImg'
-let pinchStartDist = 0, pinchStartScale = 1;
-let pinchCenter = {x:0,y:0};
-let imgOffsetFromCenter = {x:0,y:0};
-
-let textPinchStartDist = 0, textPinchStartScale = 1;
-let selectedImgPinchStartDist = 0, selectedImgPinchStartScale = 1;
-
-/* Crop state */
-let cropping = false;
-let cropPoints = [];
-let currentCropImg = null;
-
-/* Optimization state */
-let needsRedraw = false;
-let redrawTimeout = null;
-let textBounds = []; // Cached bounds for texts: {index, x, y, width, height}
-let lastDrawTime = 0;
-const framePadding = 40;           
-let usableWidth  = 0; // Set after canvas size
-const baseFontPx   = 34;           
-const baseLineH    = 50;           
-let MIN_REDRAW_INTERVAL = 16; // ~60fps
-const handleRadius = 8;
-const rotOffset = 40;
-const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-MIN_REDRAW_INTERVAL = isMobile ? 33 : 16; // 30fps on mobile
-
+/* ========= Context Init ========= */
+elements.ctx = elements.canvas.getContext('2d', { willReadFrequently: true, alpha: false });
+elements.cropCtx = elements.cropCanvas.getContext('2d');
 /* ========= Helpers ========= */
-function clamp(v, min, max){ return Math.min(Math.max(v, min), max); }
-
-function deviceToCanvas(px, py){
-  const r = canvas.getBoundingClientRect();
+const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
+const deviceToCanvas = (px, py) => {
+  const r = elements.canvas.getBoundingClientRect();
   return {
-    x: (px - r.left) * (canvas.width / r.width),
-    y: (py - r.top)  * (canvas.height / r.height)
+    x: (px - r.left) * (elements.canvas.width / r.width),
+    y: (py - r.top) * (elements.canvas.height / r.height)
   };
-}
-function getTouchCanvasPos(t){ return deviceToCanvas(t.clientX, t.clientY); }
-
-/* ========= Get Unscaled Dims ========= */
-function getUnscaledDims(obj, isText) {
+};
+const getTouchCanvasPos = (t) => deviceToCanvas(t.clientX, t.clientY);
+const getUnscaledDims = (obj, isText) => {
   if (isText) {
     const dims = getWrappedTextDimensions(obj);
     const s = obj.scale;
@@ -354,22 +344,16 @@ function getUnscaledDims(obj, isText) {
   } else {
     return { width: obj.img.width, height: obj.img.height };
   }
-}
-
-/* ========= Point in Object (with rotation and scale) for images ========= */
-function isPointInObject(p, obj, isText) {
+};
+const isPointInObject = (p, obj, isText) => {
   if (isText) {
-    // For text, use cached bounds for faster hit test
-    const index = texts.indexOf(obj);
+    const index = state.texts.indexOf(obj);
     if (index === -1) return false;
-    const bound = textBounds[index];
+    const bound = state.textBounds[index];
     if (!bound) return false;
-    // For rotated text, the bounds are axis-aligned, so approximate hit test
-    // To be more accurate, we could transform the point, but for simplicity use AABB
     return (p.x > bound.x && p.x < bound.x + bound.width &&
             p.y > bound.y && p.y < bound.y + bound.height);
   } else {
-    // For images, full transform
     const s = obj.scale;
     const th = obj.rotation;
     const cos = Math.cos(th);
@@ -385,10 +369,8 @@ function isPointInObject(p, obj, isText) {
     let halfUnH = unscaled.height / 2;
     return Math.abs(local_x) <= halfUnW && Math.abs(local_y) <= halfUnH;
   }
-}
-
-/* ========= Image Resize for Mobile ========= */
-function resizeImage(img, maxWidth, maxHeight, quality = 0.8) {
+};
+const resizeImage = (img, maxWidth, maxHeight, quality = 0.8) => {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   let {width, height} = img;
@@ -401,104 +383,87 @@ function resizeImage(img, maxWidth, maxHeight, quality = 0.8) {
   canvas.height = height;
   ctx.drawImage(img, 0, 0, width, height);
   return canvas.toDataURL('image/jpeg', quality);
-}
-
-/* ========= Throttled Redraw ========= */
-function scheduleRedraw() {
+};
+/* ========= Optimized Redraw ========= */
+const scheduleRedraw = () => {
   const now = performance.now();
-  if (now - lastDrawTime < MIN_REDRAW_INTERVAL) return; // Skip if too soon
-  needsRedraw = true;
-  if (redrawTimeout) return;
-  redrawTimeout = requestAnimationFrame(() => {
-    if (needsRedraw) {
+  if (now - state.lastDrawTime < state.MIN_REDRAW_INTERVAL) return;
+  state.needsRedraw = true;
+  if (state.redrawTimeout) return;
+  state.redrawTimeout = requestAnimationFrame(() => {
+    if (state.needsRedraw) {
       draw();
-      needsRedraw = false;
-      lastDrawTime = performance.now();
+      state.needsRedraw = false;
+      state.lastDrawTime = performance.now();
     }
-    redrawTimeout = null;
+    state.redrawTimeout = null;
   });
-}
-
-/* ========= Update Selected Controls ========= */
-function updateSelectedControls() {
-  if (selected && selectedType === 'text') {
-    selectedColor.value = selected.color;
-    selectedFont.value = selected.font;
-    textShadow.checked = selected.shadow !== false;
+};
+/* ========= Selection Utils ========= */
+const updateSelectedControls = () => {
+  if (state.selected && state.selectedType === 'text') {
+    elements.selectedColor.value = state.selected.color;
+    elements.selectedFont.value = state.selected.font;
+    elements.textShadow.checked = state.selected.shadow !== false;
   }
-}
-
-/* ========= Update Dynamic Selection ========= */
-function updateSelectionDisplay() {
+};
+const updateSelectionDisplay = () => {
   let badgeText = 'Selected';
-  if (showHandles) badgeText = 'Free Transform';
-  else if (selectedType === 'text' && selected) badgeText = 'Text Selected';
-  else if (selectedType === 'image') badgeText = 'Image Selected';
-  selectedBadge.textContent = badgeText;
-  selectedBadge.style.display = selectedType ? 'block' : 'none';
-  if (selectedType === 'text' && selected) {
-    textIcons.style.display = 'flex';
-    imageIcons.style.display = 'none';
-    const rect = canvas.getBoundingClientRect();
-    const left = selected.x * rect.width / canvas.width;
-    const top  = selected.y * rect.height / canvas.height;
-    textIcons.style.left = left + 'px';
-    textIcons.style.top  = top + 'px';
+  if (state.showHandles) badgeText = 'Free Transform';
+  else if (state.selectedType === 'text' && state.selected) badgeText = 'Text Selected';
+  else if (state.selectedType === 'image') badgeText = 'Image Selected';
+  elements.selectedBadge.textContent = badgeText;
+  elements.selectedBadge.style.display = state.selectedType ? 'block' : 'none';
+  if (state.selectedType === 'text' && state.selected) {
+    elements.textIcons.style.display = 'flex';
+    elements.imageIcons.style.display = 'none';
+    const rect = elements.canvas.getBoundingClientRect();
+    const left = state.selected.x * rect.width / elements.canvas.width;
+    const top = state.selected.y * rect.height / elements.canvas.height;
+    elements.textIcons.style.left = left + 'px';
+    elements.textIcons.style.top = top + 'px';
     updateSelectedControls();
-  } else if (selectedType === 'image') {
-    imageIcons.style.display = 'flex';
-    textIcons.style.display = 'none';
-    if (selectedImgIndex !== -1) {
-      const imgObj = images[selectedImgIndex];
-      const rect = canvas.getBoundingClientRect();
-      const left = imgObj.x * rect.width / canvas.width;
-      const top  = imgObj.y * rect.height / canvas.height - 20;
-      imageIcons.style.left = left + 'px';
-      imageIcons.style.top  = top + 'px';
+  } else if (state.selectedType === 'image') {
+    elements.imageIcons.style.display = 'flex';
+    elements.textIcons.style.display = 'none';
+    if (state.selectedImgIndex !== -1) {
+      const imgObj = state.images[state.selectedImgIndex];
+      const rect = elements.canvas.getBoundingClientRect();
+      const left = imgObj.x * rect.width / elements.canvas.width;
+      const top = imgObj.y * rect.height / elements.canvas.height - 20;
+      elements.imageIcons.style.left = left + 'px';
+      elements.imageIcons.style.top = top + 'px';
     } else {
-      imageIcons.style.left = '50%';
-      imageIcons.style.top = '20px';
+      elements.imageIcons.style.left = '50%';
+      elements.imageIcons.style.top = '20px';
     }
   } else {
-    textIcons.style.display = 'none';
-    imageIcons.style.display = 'none';
+    elements.textIcons.style.display = 'none';
+    elements.imageIcons.style.display = 'none';
   }
   updateItemSelectOptions();
-}
-
-/* ========= Update Item Select Dropdown ========= */
-function updateItemSelectOptions() {
-  itemSelect.innerHTML = '<option value="">কোন আইটেম সিলেক্ট করুন</option>';
-  texts.forEach((t, i) => {
+};
+const updateItemSelectOptions = () => {
+  elements.itemSelect.innerHTML = '<option value="">কোন আইটেম সিলেক্ট করুন</option>';
+  state.texts.forEach((t, i) => {
     const opt = document.createElement('option');
     opt.value = `text-${i}`;
     opt.textContent = `টেক্সট: ${t.text.substring(0, 20)}${t.text.length > 20 ? '...' : ''}`;
-    itemSelect.appendChild(opt);
+    elements.itemSelect.appendChild(opt);
   });
-  images.forEach((img, i) => {
+  state.images.forEach((img, i) => {
     const opt = document.createElement('option');
     opt.value = `image-${i}`;
     opt.textContent = `ইমেজ ${i + 1}`;
-    itemSelect.appendChild(opt);
+    elements.itemSelect.appendChild(opt);
   });
-}
-
-/* ========= Update Preview ========= */
-function updatePreview() {
-  if (previewText) {
-    previewText.color = defaultHeadlineColor;
-    previewText.font = defaultFont;
-    scheduleRedraw();
-  }
-}
-
-/* ========= Load Fonts Dynamically with Cache ========= */
+};
+/* ========= Fonts ========= */
 async function loadFonts() {
   const cacheKey = 'fontList';
   const cached = localStorage.getItem(cacheKey);
   const now = Date.now();
-  const cacheExpiry = 24 * 60 * 60 * 1000; // 24 hours
-
+  const cacheExpiry = 24 * 60 * 60 * 1000;
   let data;
   if (cached) {
     const { timestamp, files } = JSON.parse(cached);
@@ -507,7 +472,6 @@ async function loadFonts() {
       console.log('Loaded fonts from cache');
     }
   }
-
   if (!data) {
     try {
       const response = await fetch('https://raw.githubusercontent.com/prodhan2/beautifulDinajpurFrames/main/font/file_list.json');
@@ -516,39 +480,24 @@ async function loadFonts() {
       console.log('Fetched and cached fonts');
     } catch (error) {
       console.error('Failed to load fonts:', error);
-      // Fallback
       data = { files: [] };
     }
   }
-
   const files = data.files || [];
-
   if (files.length === 0) {
     console.warn('No fonts found');
     return;
   }
-
-  // Create dynamic stylesheet for @font-face
   const style = document.createElement('style');
   style.id = 'dynamic-fonts';
   let css = '';
   files.forEach(filename => {
     const fontFamily = filename.replace(/\.TTF$/i, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'unknown';
     const url = `https://raw.githubusercontent.com/prodhan2/beautifulDinajpurFrames/main/font/${filename}`;
-    css += `
-      @font-face {
-        font-family: '${fontFamily}';
-        src: url('${url}') format('truetype');
-        font-weight: normal;
-        font-style: normal;
-        font-display: swap; /* For faster loading */
-      }
-    `;
+    css += `@font-face { font-family: '${fontFamily}'; src: url('${url}') format('truetype'); font-weight: normal; font-style: normal; font-display: swap; }`;
   });
   style.textContent = css;
   document.head.appendChild(style);
-
-  // Populate select dropdowns (only for source and selected)
   const options = ['<option value="sans-serif">Sans-serif</option>'];
   files.forEach(filename => {
     const fontFamily = filename.replace(/\.TTF$/i, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'unknown';
@@ -556,425 +505,131 @@ async function loadFonts() {
     options.push(`<option value="${fontFamily}">${displayName}</option>`);
   });
   const optHtml = options.join('');
-  selectedFont.innerHTML = optHtml;
-  sourceFont.innerHTML = optHtml;
-
-  // Set default font to first one
+  elements.selectedFont.innerHTML = optHtml;
+  elements.sourceFont.innerHTML = optHtml;
   if (files.length > 0) {
-    defaultFont = files[0].replace(/\.TTF$/i, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'sans-serif';
-    selectedFont.value = defaultFont;
-    sourceFont.value = defaultFont;
-    sourceObj.font = defaultFont;
+    state.defaultFont = files[0].replace(/\.TTF$/i, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'sans-serif';
+    elements.selectedFont.value = state.defaultFont;
+    elements.sourceFont.value = state.defaultFont;
+    state.sourceObj.font = state.defaultFont;
   }
-
   console.log('Fonts loaded:', files.length);
 }
-
-/* ========= Bengali Date Functions ========= */
-function getBengaliDate() {
-  const now = new Date(); // Use current date
+/* ========= Date ========= */
+const getBengaliDate = () => {
+  const now = new Date();
   const day = now.getDate();
   const month = now.getMonth();
   const year = now.getFullYear();
-  
-  // Bengali month names
   const bengaliMonths = [
     'জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন',
     'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'
   ];
-  
-  // Convert numbers to Bengali digits
-  function toBengaliDigits(number) {
+  const toBengaliDigits = (number) => {
     const bengaliDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
     return number.toString().replace(/\d/g, digit => bengaliDigits[parseInt(digit)]);
-  }
-  
+  };
   return `${toBengaliDigits(day)} ${bengaliMonths[month]} ${toBengaliDigits(year)}`;
-}
-
-/* ========= Init ========= */
-document.addEventListener('DOMContentLoaded', () => {
-  loadFonts(); // Load fonts first
-
-  // Close buttons
-  closeText.addEventListener('click', () => {
-    selected = null;
-    selectedType = null;
-    showHandles = false;
-    transformMode = null;
-    updateSelectionDisplay();
-    scheduleRedraw();
-  });
-  closeImage.addEventListener('click', () => {
-    selectedImgIndex = -1;
-    selectedType = null;
-    showHandles = false;
-    transformMode = null;
-    updateSelectionDisplay();
-    scheduleRedraw();
-  });
-
-  // Move buttons for free transform
-  moveTextBtn.addEventListener('click', () => {
-    if (selectedType === 'text' && selected) {
-      showHandles = !showHandles;
-      updateSelectionDisplay();
-      scheduleRedraw();
-    }
-  });
-  moveImgBtn.addEventListener('click', () => {
-    if (selectedType === 'image' && selectedImgIndex >= 0) {
-      showHandles = !showHandles;
-      updateSelectionDisplay();
-      scheduleRedraw();
-    }
-  });
-
-  // Item select dropdown
-  itemSelect.addEventListener('change', (e) => {
-    const value = e.target.value;
-    showHandles = false;
-    transformMode = null;
-    if (!value) {
-      selected = null;
-      selectedImgIndex = -1;
-      selectedType = null;
-      updateSelectionDisplay();
-      scheduleRedraw();
-      return;
-    }
-    const [type, index] = value.split('-');
-    if (type === 'text') {
-      selected = texts[parseInt(index)];
-      selectedType = 'text';
-      selectedImgIndex = -1;
-    } else if (type === 'image') {
-      selectedImgIndex = parseInt(index);
-      selectedType = 'image';
-      selected = null;
-    }
-    updateSelectionDisplay();
-    scheduleRedraw();
-  });
-
-  // Listeners for selected controls
-  selectedColor.addEventListener('input', () => {
-    if (selected && selectedType === 'text') {
-      selected.color = selectedColor.value;
-      scheduleRedraw();
-    }
-  });
-  selectedFont.addEventListener('change', () => {
-    if (selected && selectedType === 'text') {
-      selected.font = selectedFont.value;
-      scheduleRedraw();
-    }
-  });
-  textShadow.addEventListener('change', () => {
-    if (selected && selectedType === 'text') {
-      selected.shadow = textShadow.checked;
-      scheduleRedraw();
-    }
-  });
-
-  // Text zoom buttons for selected
-  textZoomIn.addEventListener('click', () => {
-    if (selected && selectedType === 'text') {
-      selected.scale = clamp(selected.scale * 1.1, 0.1, 8);
-      if (showHandles) updateTextBounds();
-      scheduleRedraw();
-    }
-  });
-  textZoomOut.addEventListener('click', () => {
-    if (selected && selectedType === 'text') {
-      selected.scale = clamp(selected.scale / 1.1, 0.1, 8);
-      if (showHandles) updateTextBounds();
-      scheduleRedraw();
-    }
-  });
-
-  // Image zoom buttons
-  imgZoomIn.addEventListener('click', () => {
-    if (selectedType === 'image' && selectedImgIndex >= 0) {
-      images[selectedImgIndex].scale = clamp(images[selectedImgIndex].scale * 1.1, 0.1, 8);
-      scheduleRedraw();
-    }
-  });
-  imgZoomOut.addEventListener('click', () => {
-    if (selectedType === 'image' && selectedImgIndex >= 0) {
-      images[selectedImgIndex].scale = clamp(images[selectedImgIndex].scale / 1.1, 0.1, 8);
-      scheduleRedraw();
-    }
-  });
-
-  // Freehand crop button
-  freeCropBtn.addEventListener('click', () => {
-    if (selectedType === 'image' && selectedImgIndex >= 0) {
-      currentCropImg = images[selectedImgIndex];
-      cropping = true;
-      cropOverlay.style.display = 'block';
-      cropCanvas.width = canvas.width;
-      cropCanvas.height = canvas.height;
-      cropCtx.drawImage(canvas, 0, 0);
-      cropPoints = [];
-      // Draw initial crop image
-      drawCropMode();
-    }
-  });
-
-  // Crop overlay events
-  cropOverlay.addEventListener('pointerdown', startCrop);
-  cropOverlay.addEventListener('pointermove', drawCrop);
-  cropOverlay.addEventListener('pointerup', endCrop);
-  cropOverlay.addEventListener('click', () => {
-    if (!cropping) {
-      cropping = false;
-      cropOverlay.style.display = 'none';
-    }
-  });
-
-  // Debounced live preview on text input
-  let inputTimeout;
-  textInput.addEventListener('input', () => {
-    clearTimeout(inputTimeout);
-    inputTimeout = setTimeout(() => {
-      const val = textInput.value;
-      if (val.trim()) {
-        if (!previewText) {
-          previewText = {
-            text: '',
-            x: canvas.width / 2,
-            y: canvas.height / 2,
-            scale: 1,
-            rotation: 0,
-            color: defaultHeadlineColor,
-            font: defaultFont,
-            shadow: true
-          };
-        }
-        previewText.text = val;
-      } else {
-        previewText = null;
-      }
-      scheduleRedraw();
-    }, 150); // Slightly longer debounce for mobile
-  });
-
-  // Update preview on font change (color is now default)
-  // No fontSelect for headline, so no listener
-
-  // Source controls - automatic add to footer right
-  let sourceTextInputTimeout;
-  sourceInput.addEventListener('input', () => {
-    clearTimeout(sourceTextInputTimeout);
-    sourceTextInputTimeout = setTimeout(() => {
-      const val = sourceInput.value.trim();
-      sourceObj.text = val;
-      scheduleRedraw();
-    }, 150);
-  });
-  sourceColor.addEventListener('input', () => {
-    sourceObj.color = sourceColor.value;
-    scheduleRedraw();
-  });
-  sourceFont.addEventListener('change', () => {
-    sourceObj.font = sourceFont.value;
-    scheduleRedraw();
-  });
-  sourceShadow.addEventListener('change', () => {
-    sourceObj.shadow = sourceShadow.checked;
-    scheduleRedraw();
-  });
-  sourceZoomIn.addEventListener('click', () => {
-    sourceObj.scale = clamp(sourceObj.scale * 1.1, 0.1, 3);
-    scheduleRedraw();
-  });
-  sourceZoomOut.addEventListener('click', () => {
-    sourceObj.scale = clamp(sourceObj.scale / 1.1, 0.1, 3);
-    scheduleRedraw();
-  });
-});
-
-/* ========= Crop Functions ========= */
+};
+/* ========= Crop Utils ========= */
 let cropStart = {x:0, y:0};
-function startCrop(e) {
+const startCrop = (e) => {
   const p = deviceToCanvas(e.clientX, e.clientY);
   cropStart = p;
-  cropPoints.push(p);
+  state.cropPoints.push(p);
   drawCrop();
-}
-
-function drawCrop(e) {
-  if (!cropping) return;
+};
+const drawCrop = (e) => {
+  if (!state.cropping) return;
   const p = deviceToCanvas(e.clientX, e.clientY);
-  cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
-  cropCtx.drawImage(canvas, 0, 0);
-  if (cropPoints.length > 0) {
-    cropCtx.beginPath();
-    cropCtx.moveTo(cropPoints[0].x, cropPoints[0].y);
-    cropPoints.forEach(pt => cropCtx.lineTo(pt.x, pt.y));
-    cropCtx.lineTo(p.x, p.y);
-    cropCtx.strokeStyle = 'red';
-    cropCtx.lineWidth = 2;
-    cropCtx.stroke();
-  }
-}
-
-function endCrop() {
-  if (cropPoints.length < 3) return;
-  // Simple polygon crop using offscreen canvas
-  const tempCanvas = document.createElement('canvas');
-  const tempCtx = tempCanvas.getContext('2d');
-  const img = currentCropImg.img;
-  tempCanvas.width = img.width;
-  tempCanvas.height = img.height;
-  tempCtx.drawImage(img, 0, 0);
-
-  // Create mask from points (simplified, assume points in image coords - need transform)
-  // For simplicity, assume points are relative to canvas, but adjust for image position/scale
-  const imgRect = {
-    x: currentCropImg.x - (img.width * currentCropImg.scale / 2),
-    y: currentCropImg.y - (img.height * currentCropImg.scale / 2),
-    w: img.width * currentCropImg.scale,
-    h: img.height * currentCropImg.scale
-  };
-  // This is approximate; for real freehand, need better polygon clip
-  // Use a library or simple fill for now
-  cropCtx.fillStyle = 'rgba(255,0,0,0.3)';
-  cropCtx.beginPath();
-  cropCtx.moveTo(cropPoints[0].x, cropPoints[0].y);
-  cropPoints.forEach(pt => cropCtx.lineTo(pt.x, pt.y));
-  cropCtx.closePath();
-  cropCtx.fill();
-
-  // Crop the image using points (basic implementation)
-  const croppedData = tempCanvas.toDataURL(); // Placeholder - actual crop needs clipPath
-  currentCropImg.croppedData = croppedData;
-  const newImg = new Image();
-  newImg.onload = () => {
-    currentCropImg.img = newImg;
-  };
-  newImg.src = croppedData;
-
-  cropping = false;
-  cropOverlay.style.display = 'none';
-  cropPoints = [];
-  scheduleRedraw();
-}
-
-/* ========= Init Canvas ========= */
-frame.onload = () => {
-  // Use frame native size for crisp export
-  canvas.width  = frame.width;
-  canvas.height = frame.height;
-
-  // Update globals
-  usableWidth = canvas.width - framePadding * 2;
-
-  // Set current date in Bengali
-  currentDate = getBengaliDate();
-
-  // Optimize frame for mobile
-  if ('createImageBitmap' in window) {
-    createImageBitmap(frame).then(bm => {
-      frameBitmap = bm;
-      scheduleRedraw();
-    }).catch(() => {
-      scheduleRedraw();
-    });
-  } else {
-    scheduleRedraw();
+  elements.cropCtx.clearRect(0, 0, elements.cropCanvas.width, elements.cropCanvas.height);
+  elements.cropCtx.drawImage(elements.canvas, 0, 0);
+  if (state.cropPoints.length > 0) {
+    elements.cropCtx.beginPath();
+    elements.cropCtx.moveTo(state.cropPoints[0].x, state.cropPoints[0].y);
+    state.cropPoints.forEach(pt => elements.cropCtx.lineTo(pt.x, pt.y));
+    elements.cropCtx.lineTo(p.x, p.y);
+    elements.cropCtx.strokeStyle = 'red';
+    elements.cropCtx.lineWidth = 2;
+    elements.cropCtx.stroke();
   }
 };
-
-/* ========= Multiple Image Upload with Resize ========= */
-uploader.addEventListener('change', (e) => {
-  const files = Array.from(e.target.files || []);
-  files.forEach(file => {
-    if (!file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const img = new Image();
-      img.onload = () => {
-        // Resize for mobile performance
-        const quality = isMobile ? 0.6 : 0.8;
-        const resizedSrc = resizeImage(img, canvas.width, canvas.height, quality);
-        const resizedImg = new Image();
-        resizedImg.onload = () => {
-          const scale = Math.min(canvas.width / resizedImg.width * 0.8, canvas.height / resizedImg.height * 0.8);
-          let imgToPush = resizedImg;
-          const pushImage = (finalImg) => {
-            images.push({
-              img: finalImg,
-              x: Math.random() * canvas.width,
-              y: Math.random() * canvas.height,
-              scale: scale,
-              rotation: 0,
-              croppedData: null
-            });
-            selectedImgIndex = images.length - 1;
-            selectedType = 'image';
-            showHandles = false;
-            updateSelectionDisplay();
-            scheduleRedraw();
-          };
-          if ('createImageBitmap' in window) {
-            createImageBitmap(resizedImg).then(bitmap => {
-              imgToPush = bitmap;
-              pushImage(imgToPush);
-            }).catch(() => {
-              pushImage(resizedImg);
-            });
-          } else {
-            pushImage(resizedImg);
-          }
-        };
-        resizedImg.src = resizedSrc;
-      };
-      img.src = ev.target.result;
-    };
-    reader.readAsDataURL(file);
+const endCrop = (e) => {
+  const finalP = deviceToCanvas(e.clientX, e.clientY);
+  state.cropPoints.push(finalP);
+  if (state.cropPoints.length < 3) {
+    state.cropPoints.pop();
+    return;
+  }
+  const obj = state.currentCropImg;
+  const s = obj.scale;
+  const th = obj.rotation;
+  const cos = Math.cos(th);
+  const sin = Math.sin(th);
+  const w = obj.img.width;
+  const h = obj.img.height;
+  const polyPoints = state.cropPoints.map(p => {
+    let dx = p.x - obj.x;
+    let dy = p.y - obj.y;
+    let itx = cos * dx + sin * dy;
+    let ity = -sin * dx + cos * dy;
+    let local_x = itx / s;
+    let local_y = ity / s;
+    let imageX = local_x + w / 2;
+    let imageY = local_y + h / 2;
+    return { x: imageX, y: imageY };
   });
-  // Clear input for multiple uploads
-  uploader.value = '';
-});
-
-/* ========= Add Text ========= */
-addTextBtn.addEventListener('click', () => {
-  const val = textInput.value.trim();
-  if(!val) return;
-  const newText = {
-    text: val,
-    x: canvas.width / 2,
-    y: canvas.height / 2,
-    scale: 1,
-    rotation: 0,
-    color: defaultHeadlineColor,
-    font: defaultFont,
-    shadow: true
+  let minX = Math.min(...polyPoints.map(pt => pt.x));
+  let maxX = Math.max(...polyPoints.map(pt => pt.x));
+  let minY = Math.min(...polyPoints.map(pt => pt.y));
+  let maxY = Math.max(...polyPoints.map(pt => pt.y));
+  const bboxW = maxX - minX;
+  const bboxH = maxY - minY;
+  if (bboxW <= 0 || bboxH <= 0) {
+    state.cropPoints = [];
+    state.cropping = false;
+    elements.cropOverlay.style.display = 'none';
+    return;
+  }
+  const newCanvas = document.createElement('canvas');
+  newCanvas.width = bboxW;
+  newCanvas.height = bboxH;
+  const newCtx = newCanvas.getContext('2d');
+  newCtx.translate(-minX, -minY);
+  newCtx.save();
+  newCtx.beginPath();
+  newCtx.moveTo(polyPoints[0].x, polyPoints[0].y);
+  for (let i = 1; i < polyPoints.length; i++) {
+    newCtx.lineTo(polyPoints[i].x, polyPoints[i].y);
+  }
+  newCtx.closePath();
+  newCtx.clip();
+  newCtx.drawImage(obj.img, 0, 0);
+  newCtx.restore();
+  const croppedDataURL = newCanvas.toDataURL('image/png');
+  const newImg = new Image();
+  newImg.onload = () => {
+    obj.img = newImg;
+    obj.x += (bboxW * s / 2 - (w * s / 2));
+    obj.y += (bboxH * s / 2 - (h * s / 2));
+    obj.scale = s * (Math.min(bboxW / w, bboxH / h));
+    scheduleRedraw();
   };
-  texts.push(newText);
-  previewText = null;
-  textInput.value = '';
-  selected = newText;
-  selectedType = 'text';
-  showHandles = false;
-  updateSelectionDisplay();
-  updateTextBounds(); // Update immediately for fast selection
-  scheduleRedraw();
-});
-
-/* ========= Get Wrapped Text Dimensions ========= */
-function getWrappedTextDimensions(tb) {
+  newImg.src = croppedDataURL;
+  state.cropping = false;
+  elements.cropOverlay.style.display = 'none';
+  state.cropPoints = [];
+};
+/* ========= Text Dimensions ========= */
+const getWrappedTextDimensions = (tb) => {
   const tempCanvas = document.createElement('canvas');
   const tempCtx = tempCanvas.getContext('2d');
-  tempCtx.font = `700 ${baseFontPx}px "${tb.font}"`;
-  const maxLocal = usableWidth / tb.scale;
+  tempCtx.font = `700 ${state.baseFontPx}px "${tb.font}"`;
+  const maxLocal = state.usableWidth / tb.scale;
   const words = tb.text.split(' ');
   let line = '';
   let lines = [];
   let maxLocalWidth = 0;
-
   for (let i = 0; i < words.length; i++) {
     const test = line + words[i] + ' ';
     if (tempCtx.measureText(test).width > maxLocal && i > 0) {
@@ -984,7 +639,6 @@ function getWrappedTextDimensions(tb) {
         lines.push(line);
         line = words[i] + ' ';
       } else {
-        // very long single "word" -> break by chars
         let piece = '';
         for (const ch of words[i] + ' ') {
           if (tempCtx.measureText(piece + ch).width > maxLocal) {
@@ -1010,18 +664,15 @@ function getWrappedTextDimensions(tb) {
     maxLocalWidth = Math.max(maxLocalWidth, w);
     lines.push(line);
   }
-
   const width = maxLocalWidth * tb.scale;
-  const height = lines.length * baseLineH * tb.scale;
+  const height = lines.length * state.baseLineH * tb.scale;
   return { width, height };
-}
-
-/* ========= Cache Text Bounds ========= */
-function updateTextBounds() {
-  textBounds = [];
-  texts.forEach((tb, index) => {
+};
+const updateTextBounds = () => {
+  state.textBounds = [];
+  state.texts.forEach((tb, index) => {
     const dims = getWrappedTextDimensions(tb);
-    textBounds.push({
+    state.textBounds.push({
       index,
       x: tb.x - dims.width / 2,
       y: tb.y - dims.height / 2,
@@ -1029,159 +680,133 @@ function updateTextBounds() {
       height: dims.height
     });
   });
-}
-
-/* ========= Text wrapping that respects scale (keeps inside frame) ========= */
-function wrapTextScaled(ctx, text, x, y, maxWidthWorld, lineHeightWorld, scale){
-  // inside a scaled context; usable local width = maxWidthWorld / scale
+};
+const wrapTextScaled = (ctx, text, x, y, maxWidthWorld, lineHeightWorld, scale) => {
   const maxLocal = maxWidthWorld / scale;
-  const lhLocal  = lineHeightWorld / scale;
-
-  // Use baseline top for predictable stacking
+  const lhLocal = lineHeightWorld / scale;
   const oldBaseline = ctx.textBaseline;
   ctx.textBaseline = 'top';
-
-  // Split by space; fallback to char-splitting for oversized words
   const words = text.split(' ');
   let line = '';
   let cursorY = y;
-
-  function drawLine(str){
+  const drawLine = (str) => {
     ctx.fillText(str, x, cursorY);
     cursorY += lhLocal;
-  }
-
-  for(let i=0;i<words.length;i++){
+  };
+  for (let i = 0; i < words.length; i++) {
     const test = line + words[i] + ' ';
-    if(ctx.measureText(test).width > maxLocal && i > 0){
-      // current word doesn't fit on this line
-      if(line.trim().length){
+    if (ctx.measureText(test).width > maxLocal && i > 0) {
+      if (line.trim().length) {
         drawLine(line);
         line = words[i] + ' ';
-      }else{
-        // very long single "word" -> break by chars
+      } else {
         let piece = '';
-        for(const ch of words[i] + ' '){
-          if(ctx.measureText(piece + ch).width > maxLocal){
+        for (const ch of words[i] + ' ') {
+          if (ctx.measureText(piece + ch).width > maxLocal) {
             drawLine(piece);
             piece = ch;
-          }else{
+          } else {
             piece += ch;
           }
         }
         line = '';
       }
-    }else{
+    } else {
       line = test;
     }
   }
-  if(line.trim().length) drawLine(line);
-
+  if (line.trim().length) drawLine(line);
   ctx.textBaseline = oldBaseline;
-}
-
-/* ========= Drawing ========= */
-function draw(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  // Draw all images
-  images.forEach(imgObj => {
-    ctx.save();
-    ctx.translate(imgObj.x, imgObj.y);
-    ctx.rotate(imgObj.rotation);
-    ctx.scale(imgObj.scale, imgObj.scale);
-    ctx.drawImage(imgObj.img, -imgObj.img.width / 2, -imgObj.img.height / 2);
-    ctx.restore();
+};
+/* ========= Optimized Draw ========= */
+const draw = () => {
+  elements.ctx.clearRect(0, 0, elements.canvas.width, elements.canvas.height);
+  // Draw images
+  state.images.forEach(imgObj => {
+    elements.ctx.save();
+    elements.ctx.translate(imgObj.x, imgObj.y);
+    elements.ctx.rotate(imgObj.rotation);
+    elements.ctx.scale(imgObj.scale, imgObj.scale);
+    elements.ctx.drawImage(imgObj.img, -imgObj.img.width / 2, -imgObj.img.height / 2);
+    elements.ctx.restore();
   });
-
-  // Frame overlay
-  ctx.drawImage(frameBitmap || frame, 0, 0, canvas.width, canvas.height);
-  
-  // Mobile optimized shadow blur
-  const textShadowBlur = isMobile ? 2 : 4;
-  const sourceShadowBlur = isMobile ? 3 : 6;
-  
-  // Draw date (top left) - Using default Bangla font
-  if (currentDate) {
-    ctx.save();
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `bold 35px "${defaultFont}"`;
-    ctx.shadowColor = 'rgba(0,0,0,.65)';
-    ctx.shadowBlur = textShadowBlur;
-    ctx.fillText(currentDate, 30, 30);
-    ctx.restore();
+  // Frame
+  elements.ctx.drawImage(frameBitmap || frame, 0, 0, elements.canvas.width, elements.canvas.height);
+  const textShadowBlur = state.isMobile ? 2 : 4;
+  const sourceShadowBlur = state.isMobile ? 3 : 6;
+  // Date
+  if (state.currentDate) {
+    elements.ctx.save();
+    elements.ctx.textAlign = 'left';
+    elements.ctx.textBaseline = 'top';
+    elements.ctx.fillStyle = '#ffffff';
+    elements.ctx.font = `bold 35px "${state.defaultFont}"`;
+    elements.ctx.shadowColor = 'rgba(0,0,0,.65)';
+    elements.ctx.shadowBlur = textShadowBlur;
+    elements.ctx.fillText(state.currentDate, 30, 30);
+    elements.ctx.restore();
   }
-  
-  // Draw source (footer right) - Using sourceObj
-  if (sourceObj.text) {
-    ctx.save();
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'bottom';
-    ctx.fillStyle = sourceObj.color;
-    ctx.font = `bold ${35 * sourceObj.scale}px "${sourceObj.font}"`;
-    if (sourceObj.shadow !== false) {
-      ctx.shadowColor = 'rgba(0,0,0,.65)';
-      ctx.shadowBlur = sourceShadowBlur;
+  // Source
+  if (state.sourceObj.text) {
+    elements.ctx.save();
+    elements.ctx.textAlign = 'right';
+    elements.ctx.textBaseline = 'bottom';
+    elements.ctx.fillStyle = state.sourceObj.color;
+    elements.ctx.font = `bold ${35 * state.sourceObj.scale}px "${state.sourceObj.font}"`;
+    if (state.sourceObj.shadow !== false) {
+      elements.ctx.shadowColor = 'rgba(0,0,0,.65)';
+      elements.ctx.shadowBlur = sourceShadowBlur;
     } else {
-      ctx.shadowColor = 'transparent';
-      ctx.shadowBlur = 0;
+      elements.ctx.shadowColor = 'transparent';
+      elements.ctx.shadowBlur = 0;
     }
-    ctx.fillText('সোর্স: ' + sourceObj.text, canvas.width - 30, canvas.height - 110);
-    ctx.restore();
+    elements.ctx.fillText('সোর্স: ' + state.sourceObj.text, elements.canvas.width - 30, elements.canvas.height - 110);
+    elements.ctx.restore();
   }
-
   // Texts
-  texts.forEach(tb => {
-    ctx.save();
-    ctx.translate(tb.x, tb.y);
-    ctx.rotate(tb.rotation);
-    ctx.scale(tb.scale, tb.scale);
-
-    ctx.textAlign = 'center';
-    ctx.fillStyle = tb.color;
+  state.texts.forEach(tb => {
+    elements.ctx.save();
+    elements.ctx.translate(tb.x, tb.y);
+    elements.ctx.rotate(tb.rotation);
+    elements.ctx.scale(tb.scale, tb.scale);
+    elements.ctx.textAlign = 'center';
+    elements.ctx.fillStyle = tb.color;
     if (tb.shadow !== false) {
-      ctx.shadowColor = 'rgba(0,0,0,.65)';
-      ctx.shadowBlur = textShadowBlur;
+      elements.ctx.shadowColor = 'rgba(0,0,0,.65)';
+      elements.ctx.shadowBlur = textShadowBlur;
     } else {
-      ctx.shadowColor = 'transparent';
-      ctx.shadowBlur = 0;
+      elements.ctx.shadowColor = 'transparent';
+      elements.ctx.shadowBlur = 0;
     }
-    ctx.font = `700 ${baseFontPx}px "${tb.font}"`;
-
-    wrapTextScaled(ctx, tb.text, 0, 0, usableWidth, baseLineH, tb.scale);
-    ctx.restore();
+    elements.ctx.font = `700 ${state.baseFontPx}px "${tb.font}"`;
+    wrapTextScaled(elements.ctx, tb.text, 0, 0, state.usableWidth, state.baseLineH, tb.scale);
+    elements.ctx.restore();
   });
-
-  // Preview text (drawn last, semi-transparent for preview feel)
-  if (previewText) {
-    ctx.save();
-    ctx.globalAlpha = 0.7; // Semi-transparent for preview
-    ctx.translate(previewText.x, previewText.y);
-    ctx.rotate(previewText.rotation);
-    ctx.scale(previewText.scale, previewText.scale);
-
-    ctx.textAlign = 'center';
-    ctx.fillStyle = previewText.color;
-    if (previewText.shadow !== false) {
-      ctx.shadowColor = 'rgba(0,0,0,.65)';
-      ctx.shadowBlur = textShadowBlur;
+  // Preview
+  if (state.previewText) {
+    elements.ctx.save();
+    elements.ctx.globalAlpha = 0.7;
+    elements.ctx.translate(state.previewText.x, state.previewText.y);
+    elements.ctx.rotate(state.previewText.rotation);
+    elements.ctx.scale(state.previewText.scale, state.previewText.scale);
+    elements.ctx.textAlign = 'center';
+    elements.ctx.fillStyle = state.previewText.color;
+    if (state.previewText.shadow !== false) {
+      elements.ctx.shadowColor = 'rgba(0,0,0,.65)';
+      elements.ctx.shadowBlur = textShadowBlur;
     } else {
-      ctx.shadowColor = 'transparent';
-      ctx.shadowBlur = 0;
+      elements.ctx.shadowColor = 'transparent';
+      elements.ctx.shadowBlur = 0;
     }
-    ctx.font = `700 ${baseFontPx}px "${previewText.font}"`;
-
-    wrapTextScaled(ctx, previewText.text, 0, 0, usableWidth, baseLineH, previewText.scale);
-    ctx.restore();
+    elements.ctx.font = `700 ${state.baseFontPx}px "${state.previewText.font}"`;
+    wrapTextScaled(elements.ctx, state.previewText.text, 0, 0, state.usableWidth, state.baseLineH, state.previewText.scale);
+    elements.ctx.restore();
   }
-
-  // Free transform handles
-  if (showHandles && selectedType) {
+  // Selection border and handles
+  if (state.selectedType) {
     let obj, isText, halfWW, halfWH, unscaledW, unscaledH, s;
-    if (selectedType === 'text') {
-      obj = selected;
+    if (state.selectedType === 'text') {
+      obj = state.selected;
       isText = true;
       const dims = getWrappedTextDimensions(obj);
       halfWW = dims.width / 2;
@@ -1190,7 +815,7 @@ function draw(){
       unscaledW = dims.width / s;
       unscaledH = dims.height / s;
     } else {
-      obj = images[selectedImgIndex];
+      obj = state.images[state.selectedImgIndex];
       isText = false;
       const iw = obj.img.width;
       const ih = obj.img.height;
@@ -1200,55 +825,121 @@ function draw(){
       unscaledW = iw;
       unscaledH = ih;
     }
-    ctx.save();
-    ctx.translate(obj.x, obj.y);
-    ctx.rotate(obj.rotation);
-    // bbox
-    ctx.strokeStyle = 'rgba(110,168,254,0.8)';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(-halfWW, -halfWH, 2 * halfWW, 2 * halfWH);
-    // corners
-    ctx.fillStyle = 'rgba(110,168,254,0.9)';
-    const hR = 6;
-    const corners = [
-      [-halfWW, -halfWH],
-      [halfWW, -halfWH],
-      [halfWW, halfWH],
-      [-halfWW, halfWH]
-    ];
-    corners.forEach(([cx, cy]) => {
-      ctx.beginPath();
-      ctx.arc(cx, cy, hR, 0, 2 * Math.PI);
-      ctx.fill();
-    });
-    // rotation handle
-    const rotX = 0;
-    const rotY = -halfWH - rotOffset;
-    ctx.strokeStyle = 'rgba(110,168,254,0.6)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, -halfWH);
-    ctx.lineTo(rotX, rotY);
-    ctx.stroke();
-    ctx.fillStyle = 'rgba(110,168,254,0.9)';
-    ctx.beginPath();
-    ctx.arc(rotX, rotY, hR, 0, 2 * Math.PI);
-    ctx.fill();
-    ctx.restore();
+    elements.ctx.save();
+    elements.ctx.translate(obj.x, obj.y);
+    elements.ctx.rotate(obj.rotation);
+    // Border always when selected
+    elements.ctx.strokeStyle = 'rgba(110,168,254,0.6)';
+    elements.ctx.lineWidth = 2;
+    elements.ctx.strokeRect(-halfWW, -halfWH, 2 * halfWW, 2 * halfWH);
+    if (state.showHandles) {
+      // Corners
+      elements.ctx.fillStyle = 'rgba(110,168,254,0.9)';
+      const hR = 6;
+      const corners = [
+        [-halfWW, -halfWH],
+        [halfWW, -halfWH],
+        [halfWW, halfWH],
+        [-halfWW, halfWH]
+      ];
+      corners.forEach(([cx, cy]) => {
+        elements.ctx.beginPath();
+        elements.ctx.arc(cx, cy, hR, 0, 2 * Math.PI);
+        elements.ctx.fill();
+      });
+      // Rotation handle
+      const rotX = 0;
+      const rotY = -halfWH - state.rotOffset;
+      elements.ctx.strokeStyle = 'rgba(110,168,254,0.6)';
+      elements.ctx.lineWidth = 1;
+      elements.ctx.beginPath();
+      elements.ctx.moveTo(0, -halfWH);
+      elements.ctx.lineTo(rotX, rotY);
+      elements.ctx.stroke();
+      elements.ctx.fillStyle = 'rgba(110,168,254,0.9)';
+      elements.ctx.beginPath();
+      elements.ctx.arc(rotX, rotY, hR, 0, 2 * Math.PI);
+      elements.ctx.fill();
+    }
+    elements.ctx.restore();
   }
-
-  // Update selection display after draw
   updateSelectionDisplay();
-  updateTextBounds(); // Cache bounds after drawing texts
-}
-
-/* ========= Pointer Events ========= */
-canvas.addEventListener('pointerdown', (e) => {
-  const p = deviceToCanvas(e.clientX, e.clientY);
+};
+/* ========= Interaction Utils ========= */
+let isDoubleClick = false;
+let doubleClickTimeout = null;
+const handleClick = (p) => {
+  const now = Date.now();
+  const timeDiff = now - state.lastClickTime;
+  const distDiff = Math.hypot(p.x - state.lastClickPos.x, p.y - state.lastClickPos.y);
+  if (timeDiff < state.DOUBLE_CLICK_THRESHOLD && distDiff < state.DOUBLE_CLICK_DISTANCE) {
+    isDoubleClick = true;
+    clearTimeout(doubleClickTimeout);
+    handleDoubleClick(p);
+  } else {
+    isDoubleClick = false;
+    doubleClickTimeout = setTimeout(() => {
+      if (!isDoubleClick) {
+        handleSingleClick(p);
+      }
+    }, state.DOUBLE_CLICK_THRESHOLD);
+  }
+  state.lastClickTime = now;
+  state.lastClickPos = p;
+};
+const handleDoubleClick = (p) => {
+  let hitText = false;
+  let hitImage = false;
+  for (let i = state.texts.length - 1; i >= 0; i--) {
+    const bound = state.textBounds[i];
+    if (bound && p.x > bound.x && p.x < bound.x + bound.width &&
+        p.y > bound.y && p.y < bound.y + bound.height) {
+      state.selected = state.texts[i];
+      state.selectedType = 'text';
+      state.selectedImgIndex = -1;
+      state.showHandles = true;
+      state.transformMode = null;
+      hitText = true;
+      updateSelectionDisplay();
+      const t = prompt('Edit text:', state.selected.text);
+      if (t !== null) {
+        state.selected.text = t;
+        updateTextBounds();
+      }
+      scheduleRedraw();
+      break;
+    }
+  }
+  if (!hitText) {
+    for (let i = state.images.length - 1; i >= 0; i--) {
+      if (isPointInObject(p, state.images[i], false)) {
+        state.selectedImgIndex = i;
+        state.selectedType = 'image';
+        state.selected = null;
+        state.showHandles = true;
+        state.transformMode = null;
+        hitImage = true;
+        updateSelectionDisplay();
+        scheduleRedraw();
+        break;
+      }
+    }
+  }
+  if (!hitText && !hitImage) {
+    state.selected = null;
+    state.selectedType = null;
+    state.selectedImgIndex = -1;
+    state.showHandles = false;
+    state.transformMode = null;
+    updateSelectionDisplay();
+    scheduleRedraw();
+  }
+};
+const handleSingleClick = (p) => {
   let hitSomething = false;
-  if (showHandles && selectedType) {
-    const isText = selectedType === 'text';
-    const obj = isText ? selected : images[selectedImgIndex];
+  if (state.showHandles && state.selectedType) {
+    const isText = state.selectedType === 'text';
+    const obj = isText ? state.selected : state.images[state.selectedImgIndex];
     const s = obj.scale;
     const th = obj.rotation;
     const cos = Math.cos(th);
@@ -1262,20 +953,18 @@ canvas.addEventListener('pointerdown', (e) => {
     const unscaled = getUnscaledDims(obj, isText);
     const halfUnW = unscaled.width / 2;
     const halfUnH = unscaled.height / 2;
-    const localHR = handleRadius / s;
-    // rotation handle
-    const localOffset = rotOffset / s;
+    const localHR = state.handleRadius / s;
+    const localOffset = state.rotOffset / s;
     const lrx = 0;
     const lry = -halfUnH - localOffset;
     let distRot = Math.hypot(local_x - lrx, local_y - lry);
     if (distRot < localHR) {
-      transformMode = 'rotate';
-      prevAngle = Math.atan2(local_y, local_x);
-      currentObj = obj;
-      isCurrentText = isText;
+      state.transformMode = 'rotate';
+      state.prevAngle = Math.atan2(local_y, local_x);
+      state.currentObj = obj;
+      state.isCurrentText = isText;
       hitSomething = true;
     } else {
-      // corners for scale
       const corners = [
         {lx: -halfUnW, ly: -halfUnH},
         {lx: halfUnW, ly: -halfUnH},
@@ -1285,73 +974,69 @@ canvas.addEventListener('pointerdown', (e) => {
       for (let corner of corners) {
         let d = Math.hypot(local_x - corner.lx, local_y - corner.ly);
         if (d < localHR) {
-          transformMode = 'scale';
-          startScale = obj.scale;
-          startRadial = Math.hypot(local_x, local_y);
-          currentObj = obj;
-          isCurrentText = isText;
+          state.transformMode = 'scale';
+          state.startScale = obj.scale;
+          state.startRadial = Math.hypot(local_x, local_y);
+          state.currentObj = obj;
+          state.isCurrentText = isText;
           hitSomething = true;
           break;
         }
       }
     }
     if (!hitSomething) {
-      // inside for move
       if (Math.abs(local_x) < halfUnW && Math.abs(local_y) < halfUnH) {
-        transformMode = 'move';
-        dragStartX = p.x;
-        dragStartY = p.y;
-        startObjX = obj.x;
-        startObjY = obj.y;
-        currentObj = obj;
-        isCurrentText = isText;
+        state.transformMode = 'move';
+        state.dragStartX = p.x;
+        state.dragStartY = p.y;
+        state.startObjX = obj.x;
+        state.startObjY = obj.y;
+        state.currentObj = obj;
+        state.isCurrentText = isText;
         hitSomething = true;
       }
     }
   }
   if (!hitSomething) {
-    // deselect
-    selected = null;
-    selectedType = null;
-    selectedImgIndex = -1;
-    showHandles = false;
-    transformMode = null;
-    currentObj = null;
-    // check for new selection - texts first using cached bounds
-    for (let i = texts.length - 1; i >= 0; i--) {
-      const bound = textBounds[i];
+    state.selected = null;
+    state.selectedType = null;
+    state.selectedImgIndex = -1;
+    state.showHandles = false;
+    state.transformMode = null;
+    state.currentObj = null;
+    for (let i = state.texts.length - 1; i >= 0; i--) {
+      const bound = state.textBounds[i];
       if (bound && p.x > bound.x && p.x < bound.x + bound.width &&
           p.y > bound.y && p.y < bound.y + bound.height) {
-        selected = texts[i];
-        selectedType = 'text';
-        selectedImgIndex = -1;
-        transformMode = 'move';
-        dragStartX = p.x;
-        dragStartY = p.y;
-        startObjX = selected.x;
-        startObjY = selected.y;
-        currentObj = selected;
-        isCurrentText = true;
-        showHandles = false;
+        state.selected = state.texts[i];
+        state.selectedType = 'text';
+        state.selectedImgIndex = -1;
+        state.transformMode = 'move';
+        state.dragStartX = p.x;
+        state.dragStartY = p.y;
+        state.startObjX = state.selected.x;
+        state.startObjY = state.selected.y;
+        state.currentObj = state.selected;
+        state.isCurrentText = true;
+        state.showHandles = true;
         hitSomething = true;
         break;
       }
     }
     if (!hitSomething) {
-      // images
-      for (let i = images.length - 1; i >= 0; i--) {
-        if (isPointInObject(p, images[i], false)) {
-          selectedImgIndex = i;
-          selectedType = 'image';
-          selected = null;
-          transformMode = 'move';
-          dragStartX = p.x;
-          dragStartY = p.y;
-          startObjX = images[i].x;
-          startObjY = images[i].y;
-          currentObj = images[i];
-          isCurrentText = false;
-          showHandles = false;
+      for (let i = state.images.length - 1; i >= 0; i--) {
+        if (isPointInObject(p, state.images[i], false)) {
+          state.selectedImgIndex = i;
+          state.selectedType = 'image';
+          state.selected = null;
+          state.transformMode = 'move';
+          state.dragStartX = p.x;
+          state.dragStartY = p.y;
+          state.startObjX = state.images[i].x;
+          state.startObjY = state.images[i].y;
+          state.currentObj = state.images[i];
+          state.isCurrentText = false;
+          state.showHandles = false;
           hitSomething = true;
           break;
         }
@@ -1362,176 +1047,456 @@ canvas.addEventListener('pointerdown', (e) => {
     updateSelectionDisplay();
   }
   scheduleRedraw();
+};
+/* ========= Pointer Events ========= */
+elements.canvas.addEventListener('pointerdown', (e) => {
+  const p = deviceToCanvas(e.clientX, e.clientY);
+  handleClick(p);
   e.preventDefault();
 });
-
-canvas.addEventListener('pointermove', (e) => {
-  if (!transformMode || !currentObj) return;
-  const isText = isCurrentText;
+elements.canvas.addEventListener('pointermove', (e) => {
+  if (!state.transformMode || !state.currentObj || isDoubleClick) return;
+  const isText = state.isCurrentText;
   const currentP = deviceToCanvas(e.clientX, e.clientY);
-  const s = currentObj.scale;
-  const th = currentObj.rotation;
+  const s = state.currentObj.scale;
+  const th = state.currentObj.rotation;
   const cos = Math.cos(th);
   const sin = Math.sin(th);
-  let dx = currentP.x - currentObj.x;
-  let dy = currentP.y - currentObj.y;
+  let dx = currentP.x - state.currentObj.x;
+  let dy = currentP.y - state.currentObj.y;
   let itx = cos * dx + sin * dy;
   let ity = -sin * dx + cos * dy;
   let local_x = itx / s;
   let local_y = ity / s;
-  if (transformMode === 'move') {
-    const delX = currentP.x - dragStartX;
-    const delY = currentP.y - dragStartY;
-    currentObj.x = startObjX + delX;
-    currentObj.y = startObjY + delY;
-  } else if (transformMode === 'scale') {
+  if (state.transformMode === 'move') {
+    const delX = currentP.x - state.dragStartX;
+    const delY = currentP.y - state.dragStartY;
+    state.currentObj.x = state.startObjX + delX;
+    state.currentObj.y = state.startObjY + delY;
+  } else if (state.transformMode === 'scale') {
     const currentRadial = Math.hypot(local_x, local_y);
-    let newScale = startScale * (currentRadial / startRadial);
+    let newScale = state.startScale * (currentRadial / state.startRadial);
     newScale = clamp(newScale, 0.1, 8);
-    currentObj.scale = newScale;
+    state.currentObj.scale = newScale;
     if (isText) updateTextBounds();
-  } else if (transformMode === 'rotate') {
+  } else if (state.transformMode === 'rotate') {
     const currentAngle = Math.atan2(local_y, local_x);
-    const delta = currentAngle - prevAngle;
-    currentObj.rotation += delta;
-    prevAngle = currentAngle;
+    const delta = currentAngle - state.prevAngle;
+    state.currentObj.rotation += delta;
+    state.prevAngle = currentAngle;
   }
   scheduleRedraw();
 });
-
 ['pointerup','pointerleave','pointercancel'].forEach(ev => {
-  canvas.addEventListener(ev, () => { 
-    transformMode = null;
-    currentObj = null;
-    isCurrentText = false;
+  elements.canvas.addEventListener(ev, () => {
+    state.transformMode = null;
+    state.currentObj = null;
+    state.isCurrentText = false;
+    isDoubleClick = false;
+    clearTimeout(doubleClickTimeout);
     scheduleRedraw();
   });
 });
-
-/* ========= Touch: pinch-to-zoom ========= */
-canvas.addEventListener('touchstart', (e) => {
-  if(e.touches.length === 1){ return; }
-  if(e.touches.length === 2){
+/* ========= Touch Events ========= */
+elements.canvas.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 1) return;
+  if (e.touches.length === 2) {
     e.preventDefault();
     const p1 = getTouchCanvasPos(e.touches[0]);
     const p2 = getTouchCanvasPos(e.touches[1]);
-    const cx = (p1.x + p2.x)/2, cy = (p1.y + p2.y)/2;
-
-    // Decide target based on pinch center
-    pinchTarget = 'background';
-    // try hit text first (since on top)
-    for(let i=texts.length-1;i>=0;i--){
-      const bound = textBounds[i];
+    const cx = (p1.x + p2.x) / 2, cy = (p1.y + p2.y) / 2;
+    state.pinchTarget = 'background';
+    for (let i = state.texts.length - 1; i >= 0; i--) {
+      const bound = state.textBounds[i];
       if (bound && cx > bound.x && cx < bound.x + bound.width &&
           cy > bound.y && cy < bound.y + bound.height) {
-        pinchTarget = 'text';
-        selected = texts[i];
-        selectedType = 'text';
+        state.pinchTarget = 'text';
+        state.selected = state.texts[i];
+        state.selectedType = 'text';
         break;
       }
     }
-    // try hit image
-    if (pinchTarget === 'background') {
-      for(let i=images.length-1;i>=0;i--){
-        if(isPointInObject({x:cx,y:cy}, images[i], false)){
-          pinchTarget = 'selectedImg';
-          selectedImgIndex = i;
-          selectedType = 'image';
+    if (state.pinchTarget === 'background') {
+      for (let i = state.images.length - 1; i >= 0; i--) {
+        if (isPointInObject({x: cx, y: cy}, state.images[i], false)) {
+          state.pinchTarget = 'selectedImg';
+          state.selectedImgIndex = i;
+          state.selectedType = 'image';
           break;
         }
       }
     }
-    pinchStartDist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-    if(pinchTarget === 'text'){
-      textPinchStartScale = selected.scale;
-      textPinchStartDist  = pinchStartDist;
-    } else if (pinchTarget === 'selectedImg') {
-      selectedImgPinchStartScale = images[selectedImgIndex].scale;
-      selectedImgPinchStartDist = pinchStartDist;
+    state.pinchStartDist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+    if (state.pinchTarget === 'text') {
+      state.textPinchStartScale = state.selected.scale;
+      state.textPinchStartDist = state.pinchStartDist;
+    } else if (state.pinchTarget === 'selectedImg') {
+      state.selectedImgPinchStartScale = state.images[state.selectedImgIndex].scale;
+      state.selectedImgPinchStartDist = state.pinchStartDist;
     } else {
-      pinchStartScale = 1; // No scale for background
-      pinchCenter = {x:cx, y:cy};
-      imgOffsetFromCenter = { x: 0, y: 0 };
+      state.pinchStartScale = 1;
+      state.pinchCenter = {x: cx, y: cy};
+      state.imgOffsetFromCenter = { x: 0, y: 0 };
     }
     updateSelectionDisplay();
     scheduleRedraw();
   }
-}, {passive:false});
-
-canvas.addEventListener('touchmove', (e) => {
-  if(e.touches.length !== 2) return;
+}, {passive: false});
+elements.canvas.addEventListener('touchmove', (e) => {
+  if (e.touches.length !== 2) return;
   e.preventDefault();
   const p1 = getTouchCanvasPos(e.touches[0]);
   const p2 = getTouchCanvasPos(e.touches[1]);
   const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-
-  if(pinchTarget === 'text' && selectedType === 'text' && selected){
-    const factor = dist / textPinchStartDist;
-    selected.scale = clamp(textPinchStartScale * factor, 0.1, 8);
+  if (state.pinchTarget === 'text' && state.selectedType === 'text' && state.selected) {
+    const factor = dist / state.textPinchStartDist;
+    state.selected.scale = clamp(state.textPinchStartScale * factor, 0.1, 8);
     updateTextBounds();
     scheduleRedraw();
-  } else if (pinchTarget === 'selectedImg' && selectedType === 'image' && selectedImgIndex >= 0) {
-    const factor = dist / selectedImgPinchStartDist;
-    images[selectedImgIndex].scale = clamp(selectedImgPinchStartScale * factor, 0.1, 8);
+  } else if (state.pinchTarget === 'selectedImg' && state.selectedType === 'image' && state.selectedImgIndex >= 0) {
+    const factor = dist / state.selectedImgPinchStartDist;
+    state.images[state.selectedImgIndex].scale = clamp(state.selectedImgPinchStartScale * factor, 0.1, 8);
     scheduleRedraw();
-  } else if (pinchTarget === 'background') {
-    // No action for background pinch
   }
-}, {passive:false});
-
-/* ========= Zoom buttons ========= */
-zoomInBtn.addEventListener('click', () => {
-  if(selectedType === 'text' && selected){ 
-    selected.scale = clamp(selected.scale * 1.1, 0.1, 8); 
+}, {passive: false});
+/* ========= Event Listeners ========= */
+const initEventListeners = () => {
+  // Close
+  elements.closeText.addEventListener('click', () => {
+    state.selected = null;
+    state.selectedType = null;
+    state.showHandles = false;
+    state.transformMode = null;
+    updateSelectionDisplay();
+    scheduleRedraw();
+  });
+  elements.closeImage.addEventListener('click', () => {
+    state.selectedImgIndex = -1;
+    state.selectedType = null;
+    state.showHandles = false;
+    state.transformMode = null;
+    updateSelectionDisplay();
+    scheduleRedraw();
+  });
+  // Move buttons
+  elements.moveTextBtn.addEventListener('click', () => {
+    if (state.selectedType === 'text' && state.selected) {
+      state.showHandles = !state.showHandles;
+      updateSelectionDisplay();
+      scheduleRedraw();
+    }
+  });
+  elements.moveImgBtn.addEventListener('click', () => {
+    if (state.selectedType === 'image' && state.selectedImgIndex >= 0) {
+      state.showHandles = !state.showHandles;
+      updateSelectionDisplay();
+      scheduleRedraw();
+    }
+  });
+  // Duplicate button
+  elements.duplicateBtn.addEventListener('click', () => {
+    if (!state.selected || state.selectedType !== 'text') return;
+    const duplicate = { ...state.selected };
+    duplicate.x += 50;
+    duplicate.y += 20;
+    state.texts.push(duplicate);
     updateTextBounds();
-  } else if (selectedType === 'image' && selectedImgIndex >= 0) { 
-    images[selectedImgIndex].scale = clamp(images[selectedImgIndex].scale * 1.1, 0.1, 8); 
-  }
-  scheduleRedraw();
-});
-
-zoomOutBtn.addEventListener('click', () => {
-  if(selectedType === 'text' && selected){ 
-    selected.scale = clamp(selected.scale / 1.1, 0.1, 8); 
+    updateItemSelectOptions();
+    scheduleRedraw();
+  });
+  // Item select
+  elements.itemSelect.addEventListener('change', (e) => {
+    const value = e.target.value;
+    state.showHandles = false;
+    state.transformMode = null;
+    if (!value) {
+      state.selected = null;
+      state.selectedImgIndex = -1;
+      state.selectedType = null;
+      updateSelectionDisplay();
+      scheduleRedraw();
+      return;
+    }
+    const [type, index] = value.split('-');
+    if (type === 'text') {
+      state.selected = state.texts[parseInt(index)];
+      state.selectedType = 'text';
+      state.selectedImgIndex = -1;
+      state.showHandles = true;
+    } else if (type === 'image') {
+      state.selectedImgIndex = parseInt(index);
+      state.selectedType = 'image';
+      state.selected = null;
+    }
+    updateSelectionDisplay();
+    scheduleRedraw();
+  });
+  // Selected controls
+  elements.selectedColor.addEventListener('input', () => {
+    if (state.selected && state.selectedType === 'text') {
+      state.selected.color = elements.selectedColor.value;
+      scheduleRedraw();
+    }
+  });
+  elements.selectedFont.addEventListener('change', () => {
+    if (state.selected && state.selectedType === 'text') {
+      state.selected.font = elements.selectedFont.value;
+      scheduleRedraw();
+    }
+  });
+  elements.textShadow.addEventListener('change', () => {
+    if (state.selected && state.selectedType === 'text') {
+      state.selected.shadow = elements.textShadow.checked;
+      scheduleRedraw();
+    }
+  });
+  // Text zoom
+  elements.textZoomIn.addEventListener('click', () => {
+    if (state.selected && state.selectedType === 'text') {
+      state.selected.scale = clamp(state.selected.scale * 1.1, 0.1, 8);
+      if (state.showHandles) updateTextBounds();
+      scheduleRedraw();
+    }
+  });
+  elements.textZoomOut.addEventListener('click', () => {
+    if (state.selected && state.selectedType === 'text') {
+      state.selected.scale = clamp(state.selected.scale / 1.1, 0.1, 8);
+      if (state.showHandles) updateTextBounds();
+      scheduleRedraw();
+    }
+  });
+  // Image zoom
+  elements.imgZoomIn.addEventListener('click', () => {
+    if (state.selectedType === 'image' && state.selectedImgIndex >= 0) {
+      state.images[state.selectedImgIndex].scale = clamp(state.images[state.selectedImgIndex].scale * 1.1, 0.1, 8);
+      scheduleRedraw();
+    }
+  });
+  elements.imgZoomOut.addEventListener('click', () => {
+    if (state.selectedType === 'image' && state.selectedImgIndex >= 0) {
+      state.images[state.selectedImgIndex].scale = clamp(state.images[state.selectedImgIndex].scale / 1.1, 0.1, 8);
+      scheduleRedraw();
+    }
+  });
+  // Crop
+  elements.freeCropBtn.addEventListener('click', () => {
+    if (state.selectedType === 'image' && state.selectedImgIndex >= 0) {
+      state.currentCropImg = state.images[state.selectedImgIndex];
+      state.cropping = true;
+      elements.cropOverlay.style.display = 'block';
+      elements.cropCanvas.width = elements.canvas.width;
+      elements.cropCanvas.height = elements.canvas.height;
+      elements.cropCtx.drawImage(elements.canvas, 0, 0);
+      state.cropPoints = [];
+      drawCrop();
+    }
+  });
+  elements.cropOverlay.addEventListener('pointerdown', startCrop);
+  elements.cropOverlay.addEventListener('pointermove', drawCrop);
+  elements.cropOverlay.addEventListener('pointerup', endCrop);
+  elements.cropOverlay.addEventListener('click', () => {
+    if (!state.cropping) {
+      state.cropping = false;
+      elements.cropOverlay.style.display = 'none';
+    }
+  });
+  // Text input debounce
+  let inputTimeout;
+  elements.textInput.addEventListener('input', () => {
+    clearTimeout(inputTimeout);
+    inputTimeout = setTimeout(() => {
+      const val = elements.textInput.value;
+      if (val.trim()) {
+        if (!state.previewText) {
+          state.previewText = {
+            text: '',
+            x: elements.canvas.width / 2,
+            y: elements.canvas.height / 2,
+            scale: 1.5,
+            rotation: 0,
+            color: state.defaultHeadlineColor,
+            font: state.defaultFont,
+            shadow: true
+          };
+        }
+        state.previewText.text = val;
+      } else {
+        state.previewText = null;
+      }
+      scheduleRedraw();
+    }, 150);
+  });
+  // Source input debounce
+  let sourceTextInputTimeout;
+  elements.sourceInput.addEventListener('input', () => {
+    clearTimeout(sourceTextInputTimeout);
+    sourceTextInputTimeout = setTimeout(() => {
+      const val = elements.sourceInput.value.trim();
+      state.sourceObj.text = val;
+      scheduleRedraw();
+    }, 150);
+  });
+  elements.sourceColor.addEventListener('input', () => {
+    state.sourceObj.color = elements.sourceColor.value;
+    scheduleRedraw();
+  });
+  elements.sourceFont.addEventListener('change', () => {
+    state.sourceObj.font = elements.sourceFont.value;
+    scheduleRedraw();
+  });
+  elements.sourceShadow.addEventListener('change', () => {
+    state.sourceObj.shadow = elements.sourceShadow.checked;
+    scheduleRedraw();
+  });
+  elements.sourceZoomIn.addEventListener('click', () => {
+    state.sourceObj.scale = clamp(state.sourceObj.scale * 1.1, 0.1, 3);
+    scheduleRedraw();
+  });
+  elements.sourceZoomOut.addEventListener('click', () => {
+    state.sourceObj.scale = clamp(state.sourceObj.scale / 1.1, 0.1, 3);
+    scheduleRedraw();
+  });
+  // Zoom buttons
+  elements.zoomInBtn.addEventListener('click', () => {
+    if (state.selectedType === 'text' && state.selected) {
+      state.selected.scale = clamp(state.selected.scale * 1.1, 0.1, 8);
+      updateTextBounds();
+    } else if (state.selectedType === 'image' && state.selectedImgIndex >= 0) {
+      state.images[state.selectedImgIndex].scale = clamp(state.images[state.selectedImgIndex].scale * 1.1, 0.1, 8);
+    }
+    scheduleRedraw();
+  });
+  elements.zoomOutBtn.addEventListener('click', () => {
+    if (state.selectedType === 'text' && state.selected) {
+      state.selected.scale = clamp(state.selected.scale / 1.1, 0.1, 8);
+      updateTextBounds();
+    } else if (state.selectedType === 'image' && state.selectedImgIndex >= 0) {
+      state.images[state.selectedImgIndex].scale = clamp(state.images[state.selectedImgIndex].scale / 1.1, 0.1, 8);
+    }
+    scheduleRedraw();
+  });
+  // Edit/Delete
+  elements.editBtn.addEventListener('click', () => {
+    if (!state.selected || state.selectedType !== 'text') return;
+    const t = prompt('Edit text:', state.selected.text);
+    if (t !== null) {
+      state.selected.text = t;
+      updateTextBounds();
+      scheduleRedraw();
+    }
+  });
+  elements.delBtn.addEventListener('click', () => {
+    if (!state.selected || state.selectedType !== 'text') return;
+    if (confirm('Are you sure you want to delete this text?')) {
+      state.texts = state.texts.filter(tb => tb !== state.selected);
+      state.selected = null;
+      state.selectedType = null;
+      state.showHandles = false;
+      updateTextBounds();
+      scheduleRedraw();
+    }
+  });
+  // Download
+  elements.downloadBtn.addEventListener('click', () => {
+    const a = document.createElement('a');
+    a.download = 'poster.png';
+    a.href = elements.canvas.toDataURL('image/png', 0.9);
+    a.click();
+  });
+  // Uploader
+  elements.uploader.addEventListener('change', (e) => {
+    const files = Array.from(e.target.files || []);
+    files.forEach(file => {
+      if (!file.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          const quality = state.isMobile ? 0.6 : 0.8;
+          const resizedSrc = resizeImage(img, elements.canvas.width, elements.canvas.height, quality);
+          const resizedImg = new Image();
+          resizedImg.onload = () => {
+            const scale = Math.min(elements.canvas.width / resizedImg.width * 0.8, elements.canvas.height / resizedImg.height * 0.8);
+            let imgToPush = resizedImg;
+            const pushImage = (finalImg) => {
+              state.images.push({
+                img: finalImg,
+                x: Math.random() * elements.canvas.width,
+                y: Math.random() * elements.canvas.height,
+                scale: scale,
+                rotation: 0,
+                croppedData: null
+              });
+              state.selectedImgIndex = state.images.length - 1;
+              state.selectedType = 'image';
+              state.showHandles = false;
+              updateSelectionDisplay();
+              scheduleRedraw();
+            };
+            if ('createImageBitmap' in window) {
+              createImageBitmap(resizedImg).then(bitmap => {
+                imgToPush = bitmap;
+                pushImage(imgToPush);
+              }).catch(() => {
+                pushImage(resizedImg);
+              });
+            } else {
+              pushImage(resizedImg);
+            }
+          };
+          resizedImg.src = resizedSrc;
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+    elements.uploader.value = '';
+  });
+  // Add Text
+  elements.addTextBtn.addEventListener('click', () => {
+    const val = elements.textInput.value.trim();
+    if (!val) return;
+    const newText = {
+      text: val,
+      x: elements.canvas.width / 2,
+      y: elements.canvas.height / 2,
+      scale: 1.5,
+      rotation: 0,
+      color: state.defaultHeadlineColor,
+      font: state.defaultFont,
+      shadow: true
+    };
+    state.texts.push(newText);
+    state.previewText = null;
+    elements.textInput.value = '';
+    state.selected = newText;
+    state.selectedType = 'text';
+    state.showHandles = true;
+    updateSelectionDisplay();
     updateTextBounds();
-  } else if (selectedType === 'image' && selectedImgIndex >= 0) { 
-    images[selectedImgIndex].scale = clamp(images[selectedImgIndex].scale / 1.1, 0.1, 8); 
-  }
-  scheduleRedraw();
-});
-
-function updateZoomLabel(){
-  zoomLabel.textContent = `Image Zoom: 100%`; // Simplified, as multiple images have individual scales
-}
-
-/* ========= Edit/Delete icons ========= */
-editBtn.addEventListener('click', () => {
-  if(!selected || selectedType !== 'text') return;
-  const t = prompt('Edit text:', selected.text);
-  if(t !== null){
-    selected.text = t;
-    updateTextBounds(); // Update bounds after edit
     scheduleRedraw();
-  }
-});
-delBtn.addEventListener('click', () => {
-  if(!selected || selectedType !== 'text') return;
-  if (confirm('Are you sure you want to delete this text?')) {
-    texts = texts.filter(tb => tb !== selected);
-    selected = null;
-    selectedType = null;
-    showHandles = false;
-    updateTextBounds(); // Update after delete
-    scheduleRedraw();
-  }
-});
-
-/* ========= Download ========= */
-downloadBtn.addEventListener('click', () => {
-  const a = document.createElement('a');
-  a.download = 'poster.png';
-  a.href = canvas.toDataURL('image/png', 0.9); // Slight compression
-  a.click();
+  });
+};
+/* ========= Init ========= */
+document.addEventListener('DOMContentLoaded', () => {
+  loadFonts();
+  initEventListeners();
+  frame.onload = () => {
+    elements.canvas.width = frame.width;
+    elements.canvas.height = frame.height;
+    state.usableWidth = elements.canvas.width - state.framePadding * 2;
+    state.currentDate = getBengaliDate();
+    if ('createImageBitmap' in window) {
+      createImageBitmap(frame).then(bm => {
+        frameBitmap = bm;
+        scheduleRedraw();
+      }).catch(() => {
+        scheduleRedraw();
+      });
+    } else {
+      scheduleRedraw();
+    }
+  };
 });
 </script>
 </body>
